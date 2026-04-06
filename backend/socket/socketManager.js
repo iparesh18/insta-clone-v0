@@ -132,30 +132,59 @@ const initSocket = (server) => {
     // ── Send Message ────────────────────────────────────────────────────────
     socket.on("chat:send", async (data) => {
       try {
-        const { receiverId, text, mediaUrl } = data;
-        if (!receiverId || (!text?.trim() && !mediaUrl)) return;
+        const { receiverId, text, mediaUrl, sharedContent } = data;
+        if (!receiverId || (!text?.trim() && !mediaUrl && !sharedContent)) return;
 
         const roomId = getRoomId(userId, receiverId);
 
-        const message = await Message.create({
+        const messageData = {
           sender: userId,
           receiver: receiverId,
           roomId,
           text: (text || "").trim(),
           mediaUrl: mediaUrl || "",
-          delivered: false,
-          seen: false,
-        });
+          isRead: false,
+        };
 
-        const populated = await message.populate("sender", "username profilePicture");
+        // Add sharedContent if provided
+        if (sharedContent && sharedContent.type && sharedContent.contentId) {
+          messageData.sharedContent = {
+            type: sharedContent.type,
+            contentId: sharedContent.contentId,
+            message: sharedContent.message || "",
+          };
+        }
 
-        // Deliver to receiver
-        io.to(`user:${receiverId}`).emit("chat:receive", populated);
-        // Confirm to sender (mark as delivered)
-        socket.emit("chat:sent", {
-          ...populated.toObject(),
-          delivered: true,
-        });
+        const message = await Message.create(messageData);
+
+        // Populate sender
+        await message.populate("sender", "username profilePicture");
+        
+        // If sharing, populate the post/reel data
+        if (message.sharedContent?.type && message.sharedContent?.contentId) {
+          const Model = message.sharedContent.type === "post" ? require("../models/Post") : require("../models/Reel");
+          const content = await Model.findById(message.sharedContent.contentId)
+            .populate("author", "username profilePicture isVerified");
+          
+          // Convert message to plain object, then add the content
+          const msgObj = message.toObject();
+          msgObj.sharedContent = {
+            ...msgObj.sharedContent,
+            content: content.toObject ? content.toObject() : content,
+          };
+
+          // Deliver to receiver
+          io.to(`user:${receiverId}`).emit("chat:receive", msgObj);
+          // Confirm to sender (mark as delivered)
+          socket.emit("chat:sent", msgObj);
+        } else {
+          const msgObj = message.toObject();
+          
+          // Deliver to receiver
+          io.to(`user:${receiverId}`).emit("chat:receive", msgObj);
+          // Confirm to sender (mark as delivered)
+          socket.emit("chat:sent", msgObj);
+        }
 
         logger.info(`Message: ${userId} → ${receiverId}`);
       } catch (err) {
@@ -179,8 +208,8 @@ const initSocket = (server) => {
       try {
         const roomId = getRoomId(userId, senderId);
         await Message.updateMany(
-          { roomId, receiver: userId, seen: false },
-          { seen: true, seenAt: new Date() }
+          { roomId, receiver: userId, isRead: false },
+          { isRead: true }
         );
         io.to(`user:${senderId}`).emit("chat:messages_seen", {
           seenBy: userId,
@@ -210,6 +239,13 @@ const initSocket = (server) => {
       } catch (err) {
         logger.error("user:check_status error:", err.message);
       }
+    });
+
+    // ── Message Deleted ────────────────────────────────────────────────────
+    socket.on("chat:message_deleted", ({ messageId }) => {
+      if (!messageId) return;
+      // Broadcast deletion to all connected sockets
+      socket.broadcast.emit("chat:message_deleted", { messageId });
     });
 
     // ── Disconnect Handler ────────────────────────────────────────────────

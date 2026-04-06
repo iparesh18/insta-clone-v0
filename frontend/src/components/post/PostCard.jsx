@@ -9,6 +9,7 @@ import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Trash2 } from "lu
 import { postAPI } from "@/api/services";
 import Avatar from "@/components/ui/Avatar";
 import PostDetailModal from "@/components/post/PostDetailModal";
+import ShareModal from "@/components/post/ShareModal";
 import useAuthStore from "@/store/authStore";
 import usePostsStore from "@/store/postsStore";
 import { formatDistanceToNow } from "@/utils/date";
@@ -24,6 +25,7 @@ export default function PostCard({ post, onDelete }) {
   const [showHeart, setShowHeart] = useState(false);
   const [currentMedia, setCurrentMedia] = useState(0);
   const [showPostDetail, setShowPostDetail] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   const saved = savedPosts.has(post._id);
   
@@ -165,7 +167,7 @@ export default function PostCard({ post, onDelete }) {
             <button onClick={() => setShowPostDetail(true)}>
               <MessageCircle size={24} className="text-ig-dark" />
             </button>
-            <button>
+            <button onClick={() => setShowShareModal(true)}>
               <Send size={24} className="text-ig-dark" />
             </button>
           </div>
@@ -227,6 +229,16 @@ export default function PostCard({ post, onDelete }) {
       {showPostDetail && (
         <PostDetailModal postId={post._id} onClose={() => setShowPostDetail(false)} />
       )}
+
+      <ShareModal
+        isOpen={showShareModal}
+        contentType="post"
+        contentId={post._id}
+        onClose={() => setShowShareModal(false)}
+        onSuccess={() => {
+          // Could add a toast notification here
+        }}
+      />
     </article>
   );
 }

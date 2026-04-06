@@ -10,11 +10,11 @@ const {
   deleteStory,
 } = require("../controllers/story.controller");
 const { protect } = require("../middlewares/auth");
-const { videoUpload } = require("../middlewares/upload");
+const { uploadSingleWithCompression } = require("../middlewares/upload");
 const { uploadLimiter } = require("../middlewares/rateLimiter");
 
 router.get("/feed", protect, getStoryFeed);
-router.post("/", protect, uploadLimiter, videoUpload.single("media"), createStory);
+router.post("/", protect, uploadLimiter, ...uploadSingleWithCompression(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"], 100), createStory);
 router.post("/:id/view", protect, viewStory);
 router.delete("/:id", protect, deleteStory);
 

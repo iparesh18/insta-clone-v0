@@ -82,13 +82,34 @@ const getMessages = async (req, res, next) => {
     const query = { roomId };
     if (cursor) query._id = { $lt: cursor };
 
-    const messages = await Message.find(query)
+    let messages = await Message.find(query)
       .sort({ _id: -1 })
-      .limit(parseInt(limit))
+      .limit(parseInt(limit) + 1)
       .populate("sender", "username profilePicture");
 
-    const hasMore = messages.length === parseInt(limit);
-    const nextCursor = hasMore ? messages[messages.length - 1]._id : null;
+    const hasMore = messages.length > parseInt(limit);
+    if (hasMore) messages.pop();
+
+    const nextCursor = hasMore ? messages[messages.length - 1]?._id : null;
+
+    // Populate shared content (posts or reels) based on type
+    messages = await Promise.all(
+      messages.map(async (msg) => {
+        if (msg.sharedContent?.type && msg.sharedContent?.contentId) {
+          const Model = msg.sharedContent.type === "post" ? require("../models/Post") : require("../models/Reel");
+          const content = await Model.findById(msg.sharedContent.contentId)
+            .populate("author", "username profilePicture isVerified");
+          
+          const msgObj = msg.toObject();
+          msgObj.sharedContent = {
+            ...msgObj.sharedContent,
+            content: content.toObject ? content.toObject() : content,
+          };
+          return msgObj;
+        }
+        return msg.toObject();
+      })
+    );
 
     // Return in chronological order for display
     return sendSuccess(res, {
@@ -105,23 +126,54 @@ const getMessages = async (req, res, next) => {
 const sendMessage = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { text, mediaUrl } = req.body;
+    const { text, mediaUrl, sharedContent } = req.body;
 
-    if (!text && !mediaUrl) return sendError(res, "Message cannot be empty", 400);
+    if (!text && !mediaUrl && !sharedContent) {
+      return sendError(res, "Message cannot be empty", 400);
+    }
 
     const receiver = await User.findById(userId);
     if (!receiver) return sendError(res, "User not found", 404);
 
-    const message = await Message.create({
+    const messageData = {
       sender: req.user._id,
       receiver: userId,
       roomId: getRoomId(req.user._id, userId),
       text: text || "",
       mediaUrl: mediaUrl || "",
-    });
+    };
 
-    const populated = await message.populate("sender", "username profilePicture");
-    return sendSuccess(res, { message: populated }, "Message sent", 201);
+    // Add sharedContent if provided
+    if (sharedContent && sharedContent.type && sharedContent.contentId) {
+      messageData.sharedContent = {
+        type: sharedContent.type,
+        contentId: sharedContent.contentId,
+        message: sharedContent.message || "",
+      };
+    }
+
+    const message = await Message.create(messageData);
+
+    // Populate sender
+    await message.populate("sender", "username profilePicture");
+
+    // If sharing, populate the post/reel data
+    if (message.sharedContent?.type && message.sharedContent?.contentId) {
+      const Model = message.sharedContent.type === "post"
+        ? require("../models/Post")
+        : require("../models/Reel");
+      const content = await Model.findById(message.sharedContent.contentId)
+        .populate("author", "username profilePicture isVerified");
+      
+      const msgObj = message.toObject();
+      msgObj.sharedContent = {
+        ...msgObj.sharedContent,
+        content: content.toObject ? content.toObject() : content,
+      };
+      return sendSuccess(res, { message: msgObj }, "Message sent", 201);
+    }
+
+    return sendSuccess(res, { message: message }, "Message sent", 201);
   } catch (err) {
     next(err);
   }
@@ -141,4 +193,27 @@ const markAsRead = async (req, res, next) => {
   }
 };
 
-module.exports = { getConversations, getMessages, sendMessage, markAsRead, getRoomId };
+// ─── Delete Message ───────────────────────────────────────────────────────────
+/**
+ * Delete a message (only sender can delete)
+ */
+const deleteMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId);
+    if (!message) return sendError(res, "Message not found", 404);
+
+    // Only sender can delete
+    if (String(message.sender) !== String(req.user._id)) {
+      return sendError(res, "You can only delete your own messages", 403);
+    }
+
+    await Message.findByIdAndDelete(messageId);
+    return sendSuccess(res, {}, "Message deleted");
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getConversations, getMessages, sendMessage, markAsRead, deleteMessage, getRoomId };

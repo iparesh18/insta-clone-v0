@@ -18,7 +18,7 @@ const {
   getUserPosts,
 } = require("../controllers/post.controller");
 const { protect } = require("../middlewares/auth");
-const { videoUpload } = require("../middlewares/upload");
+const { uploadWithCompression } = require("../middlewares/upload");
 const { uploadLimiter } = require("../middlewares/rateLimiter");
 
 router.get("/feed", protect, getFeed);
@@ -29,7 +29,7 @@ router.post(
   "/",
   protect,
   uploadLimiter,
-  videoUpload.array("media", 10),
+  ...uploadWithCompression(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"], 100),
   createPost
 );
 

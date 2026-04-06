@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import useReelsStore from "@/store/reelsStore";
 import ReelCommentSheet from "./ReelCommentSheet";
+import ShareModal from "@/components/post/ShareModal";
 import toast from "react-hot-toast";
 
 const formatCount = (n) => {
@@ -37,6 +38,7 @@ export default function ReelItem({ reel }) {
   const [viewRegistered, setViewRegistered] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const playerRef = useRef(null);
   const isOwn = user?._id === reel.author?._id;
 
@@ -249,10 +251,7 @@ export default function ReelItem({ reel }) {
         {/* Share */}
         <motion.button
           whileTap={{ scale: 1.2 }}
-          onClick={() => {
-            navigator.clipboard?.writeText(`${window.location.origin}/reels/${reel._id}`);
-            toast.success("Link copied");
-          }}
+          onClick={() => setShowShareModal(true)}
           className="flex flex-col items-center gap-1"
         >
           <motion.div
@@ -307,6 +306,18 @@ export default function ReelItem({ reel }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        contentType="reel"
+        contentId={reel._id}
+        onClose={() => setShowShareModal(false)}
+        onSuccess={() => {
+          // Could add a toast notification here
+          toast.success("Reel shared!");
+        }}
+      />
     </div>
   );
 }

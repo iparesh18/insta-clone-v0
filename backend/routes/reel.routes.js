@@ -16,7 +16,7 @@ const {
   deleteComment,
 } = require("../controllers/reel.controller");
 const { protect } = require("../middlewares/auth");
-const { videoUpload } = require("../middlewares/upload");
+const { reelUpload } = require("../middlewares/upload");
 const { uploadLimiter } = require("../middlewares/rateLimiter");
 
 router.get("/feed", protect, getReelFeed);
@@ -27,10 +27,7 @@ router.post(
   "/",
   protect,
   uploadLimiter,
-  videoUpload.fields([
-    { name: "video", maxCount: 1 },
-    { name: "thumbnail", maxCount: 1 },
-  ]),
+  ...reelUpload,
   createReel
 );
 

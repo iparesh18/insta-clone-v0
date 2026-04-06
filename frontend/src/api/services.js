@@ -91,4 +91,17 @@ export const chatAPI = {
     api.get(`/chat/${userId}${cursor ? `?cursor=${cursor}` : ""}`),
   sendMessage: (userId, data) => api.post(`/chat/${userId}`, data),
   markAsRead: (userId) => api.patch(`/chat/${userId}/read`),
+  deleteMessage: (messageId) => api.delete(`/chat/${messageId}`),
+};
+
+export const shareAPI = {
+  getFollowers: (cursor) =>
+    api.get(`/share/followers${cursor ? `?cursor=${cursor}` : ""}`),
+  sharePost: (postId, data) => api.post(`/share/posts/${postId}`, data),
+  shareReel: (reelId, data) => api.post(`/share/reels/${reelId}`, data),
+  getSharedPosts: (cursor) =>
+    api.get(`/share/posts${cursor ? `?cursor=${cursor}` : ""}`),
+  getSharedReels: (cursor) =>
+    api.get(`/share/reels${cursor ? `?cursor=${cursor}` : ""}`),
+  markAsRead: (shareId) => api.patch(`/share/${shareId}/read`),
 };

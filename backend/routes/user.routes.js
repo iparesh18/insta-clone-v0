@@ -17,7 +17,7 @@ const {
   deleteAccount,
 } = require("../controllers/user.controller");
 const { protect } = require("../middlewares/auth");
-const { avatarUpload } = require("../middlewares/upload");
+const { uploadSingleWithCompression } = require("../middlewares/upload");
 
 router.get("/search", protect, searchUsers);
 router.get("/follow-requests", protect, getFollowRequests);
@@ -25,7 +25,7 @@ router.post("/follow-requests/:id/accept", protect, acceptFollowRequest);
 router.post("/follow-requests/:id/reject", protect, rejectFollowRequest);
 
 router.get("/:username", protect, getProfile);
-router.put("/me", protect, avatarUpload.single("avatar"), updateProfile);
+router.put("/me", protect, ...uploadSingleWithCompression(["image/jpeg", "image/png", "image/webp"], 5), updateProfile);
 router.delete("/me", protect, deleteAccount);
 
 router.post("/:id/follow", protect, followUser);

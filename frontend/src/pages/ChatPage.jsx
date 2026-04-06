@@ -6,13 +6,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowLeft, Check, CheckCheck, Circle } from "lucide-react";
+import { Send, ArrowLeft, Check, CheckCheck, Circle, Trash2 } from "lucide-react";
 import { chatAPI } from "@/api/services";
 import useAuthStore from "@/store/authStore";
 import useSocketStore from "@/store/socketStore";
 import useNotificationStore from "@/store/notificationStore";
 import Avatar from "@/components/ui/Avatar";
+import PostDetailModal from "@/components/post/PostDetailModal";
+import ReelModal from "@/components/reel/ReelModal";
 import { formatDistanceToNow } from "@/utils/date";
+import toast from "react-hot-toast";
 
 export default function ChatPage() {
   const { userId } = useParams();
@@ -32,6 +35,10 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [userOnline, setUserOnline] = useState(false);
   const [userLastSeen, setUserLastSeen] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [showReelModal, setShowReelModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedReel, setSelectedReel] = useState(null);
   const bottomRef = useRef(null);
   const typingTimer = useRef(null);
 
@@ -115,6 +122,11 @@ export default function ChatPage() {
       if (typingUserId === userId) setIsTyping(t);
     };
 
+    // Handle deleted messages
+    const handleMessageDeleted = ({ messageId }) => {
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+    };
+
     // Handle real-time online/offline while in chat
     const handleUserOnline = ({ userId: onlineUserId }) => {
       if (onlineUserId === userId) {
@@ -130,9 +142,22 @@ export default function ChatPage() {
       }
     };
 
+    // Handle messages seen by other user
+    const handleMessagesSeen = ({ roomId: seenRoomId }) => {
+      setMessages((prev) =>
+        prev.map((msg) => 
+          msg.roomId === seenRoomId && String(msg.sender?._id || msg.sender) === String(me?._id)
+            ? { ...msg, isRead: true }
+            : msg
+        )
+      );
+    };
+
     socket.on("chat:receive", handleReceive);
     socket.on("chat:sent", handleSent);
     socket.on("chat:typing", handleTyping);
+    socket.on("chat:message_deleted", handleMessageDeleted);
+    socket.on("chat:messages_seen", handleMessagesSeen);
     socket.on("user:online", handleUserOnline);
     socket.on("user:offline", handleUserOffline);
 
@@ -140,10 +165,12 @@ export default function ChatPage() {
       socket.off("chat:receive", handleReceive);
       socket.off("chat:sent", handleSent);
       socket.off("chat:typing", handleTyping);
+      socket.off("chat:message_deleted", handleMessageDeleted);
+      socket.off("chat:messages_seen", handleMessagesSeen);
       socket.off("user:online", handleUserOnline);
       socket.off("user:offline", handleUserOffline);
     };
-  }, [socket, userId]);
+  }, [socket, userId, me?._id]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -195,6 +222,17 @@ export default function ChatPage() {
       setTyping(false);
       socket.emit("chat:typing", { receiverId: userId, isTyping: false });
     }, 1500);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await chatAPI.deleteMessage(messageId);
+      setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      socket?.emit("chat:message_deleted", { messageId });
+      toast.success("Message deleted");
+    } catch (err) {
+      toast.error("Failed to delete message");
+    }
   };
 
   // No conversation selected — show list
@@ -302,37 +340,140 @@ export default function ChatPage() {
         <AnimatePresence initial={false}>
           {messages.map((msg) => {
             const isMine = String(msg.sender?._id || msg.sender) === String(me?._id);
+            
+            // Render deleted message marker
+            if (msg.isDeleted) {
+              return (
+                <motion.div
+                  key={msg._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                >
+                  <div className="text-xs text-ig-gray italic px-4 py-1">
+                    This message was deleted
+                  </div>
+                </motion.div>
+              );
+            }
+
             return (
               <motion.div
                 key={msg._id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                className={`flex ${isMine ? "justify-end" : "justify-start"} group`}
               >
-                <div className={`flex ${isMine ? "flex-row-reverse" : "flex-row"} gap-2 items-end max-w-[70%]`}>
-                  <div
-                    className={`px-4 py-2 rounded-2xl text-sm
-                      ${isMine
-                        ? "bg-ig-blue text-white rounded-br-sm"
-                        : "bg-ig-hover text-ig-dark rounded-bl-sm"
-                      } ${msg.optimistic ? "opacity-70" : ""}`}
-                  >
-                    {msg.text}
+                <div className={`flex ${isMine ? "flex-row-reverse" : "flex-row"} gap-2 items-end`}>
+                  <div className="flex flex-col gap-1">
+                    {/* Shared Content (Post/Reel) */}
+                    {msg.sharedContent?.type && (
+                      <div 
+                        onClick={() => {
+                          if (msg.sharedContent.type === "post") {
+                            setSelectedPost(msg.sharedContent.content);
+                            setShowPostModal(true);
+                          } else if (msg.sharedContent.type === "reel") {
+                            setSelectedReel(msg.sharedContent.content);
+                            setShowReelModal(true);
+                          }
+                        }}
+                        className={`rounded-2xl overflow-hidden max-w-xs ${isMine ? "rounded-br-none" : "rounded-bl-none"} bg-gray-100 cursor-pointer hover:opacity-80 transition`}
+                      >
+                        {msg.sharedContent.content ? (
+                          <div className="bg-white p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <img
+                                src={msg.sharedContent.content.author?.profilePicture?.url || "/default-avatar.png"}
+                                alt={msg.sharedContent.content.author?.username || "User"}
+                                className="w-6 h-6 rounded-full object-cover"
+                                onError={(e) => e.target.src = "/default-avatar.png"}
+                              />
+                              <div>
+                                <p className="text-xs font-semibold">{msg.sharedContent.content.author?.username || "Unknown"}</p>
+                                <p className="text-xs text-gray-500">
+                                  {msg.sharedContent.type === "post" ? "post" : "reel"}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Content Thumbnail */}
+                            {msg.sharedContent.type === "post" ? (
+                              msg.sharedContent.content.media?.[0]?.url && (
+                                <img
+                                  src={msg.sharedContent.content.media[0].url}
+                                  alt="Post"
+                                  className="w-full h-40 object-cover rounded mb-2"
+                                  onError={(e) => e.target.src = "/placeholder.png"}
+                                />
+                              )
+                            ) : (
+                              msg.sharedContent.content.video?.url && (
+                                <video
+                                  src={msg.sharedContent.content.video.url}
+                                  className="w-full h-40 object-cover rounded mb-2"
+                                  muted
+                                  controls={false}
+                                />
+                              )
+                            )}
+                            
+                            {/* Caption/Description */}
+                            {(msg.sharedContent.message || msg.sharedContent.content.caption) && (
+                              <p className="text-xs text-gray-700 truncate">
+                                {msg.sharedContent.message || msg.sharedContent.content.caption}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="bg-white p-3 text-xs text-gray-500">
+                            Loading {msg.sharedContent.type}...
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Text or Media Message */}
+                    {msg.mediaUrl || msg.text ? (
+                      <div
+                        className={`px-4 py-2 rounded-2xl text-sm max-w-xs
+                          ${isMine
+                            ? "bg-ig-blue text-white rounded-br-sm"
+                            : "bg-ig-hover text-ig-dark rounded-bl-sm"
+                          } ${msg.optimistic ? "opacity-70" : ""}`}
+                      >
+                        {msg.mediaUrl ? (
+                          <img src={msg.mediaUrl} alt="Media" className="max-w-xs rounded" />
+                        ) : (
+                          msg.text
+                        )}
+                      </div>
+                    ) : null}
                   </div>
-                  {/* Message status icons for my messages */}
-                  {isMine && (
-                    <div className="text-xs text-ig-gray">
-                      {msg.optimistic ? (
-                        <span>◌</span>
-                      ) : msg.seen ? (
-                        <CheckCheck size={14} className="text-blue-400" title="Seen" />
-                      ) : msg.delivered ? (
-                        <CheckCheck size={14} className="text-ig-gray" title="Delivered" />
-                      ) : (
-                        <Check size={14} className="text-ig-gray" title="Sent" />
-                      )}
-                    </div>
-                  )}
+
+                  {/* Message actions */}
+                  <div className={`flex gap-1 opacity-0 group-hover:opacity-100 transition ${isMine ? "flex-row-reverse" : ""}`}>
+                    {isMine && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg._id)}
+                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded text-red-500 transition"
+                        title="Delete message"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                    {isMine && (
+                      <div className="text-xs text-ig-gray flex items-center">
+                        {msg.optimistic ? (
+                          <span>◌</span>
+                        ) : msg.isRead ? (
+                          <CheckCheck size={14} className="text-blue-400" title="Seen" />
+                        ) : (
+                          <CheckCheck size={14} className="text-ig-gray" title="Delivered" />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
@@ -348,11 +489,13 @@ export default function ChatPage() {
       >
         <Avatar src={me?.profilePicture?.url} alt={me?.username} size="sm" />
         <input
+          type="text"
           className="flex-1 border border-ig-border rounded-full px-4 py-2 text-sm
                      focus:outline-none focus:border-ig-gray"
           placeholder="Message…"
           value={text}
           onChange={handleTyping}
+          autoFocus
         />
         <button
           type="submit"
@@ -362,6 +505,16 @@ export default function ChatPage() {
           <Send size={20} />
         </button>
       </form>
+
+      {/* Post Detail Modal */}
+      {showPostModal && selectedPost && (
+        <PostDetailModal postId={selectedPost._id} onClose={() => setShowPostModal(false)} />
+      )}
+
+      {/* Reel Modal */}
+      {showReelModal && selectedReel && (
+        <ReelModal reel={selectedReel} onClose={() => setShowReelModal(false)} />
+      )}
     </div>
   );
 }

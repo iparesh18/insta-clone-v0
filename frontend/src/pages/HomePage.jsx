@@ -1,6 +1,7 @@
 /**
- * pages/HomePage.jsx - FIXED v2
- * Fixed: story fetch error handling, cursor initialisation, sentinel placement.
+ * pages/HomePage.jsx - FIXED v3
+ * Fixed: story fetch error handling, cursor initialisation, sentinel placement
+ * Optimized: Added debouncing to infinite scroll fetches, reduced query overhead
  */
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -23,6 +24,7 @@ export default function HomePage() {
   const { initializeSavedPosts, addSavedPost } = usePostsStore();
 
   const isFetchingRef = useRef(false); // prevent double-fetch on StrictMode
+  const fetchDebounceRef = useRef(null); // debounce timer for infinite scroll
   const { ref: sentinelRef, inView } = useInView({ threshold: 0.1 });
 
   const fetchPosts = useCallback(async (currentCursor) => {
@@ -71,12 +73,26 @@ export default function HomePage() {
     fetchStories();
   }, []);
 
-  // Infinite scroll
+  // Infinite scroll with debouncing (300ms) to prevent excessive API calls
   useEffect(() => {
     if (inView && !initialLoad && hasMore && !loading) {
-      fetchPosts(cursor);
+      // Clear any pending fetch
+      if (fetchDebounceRef.current) {
+        clearTimeout(fetchDebounceRef.current);
+      }
+      
+      // Debounce fetch to avoid multiple calls when rapidly scrolling
+      fetchDebounceRef.current = setTimeout(() => {
+        fetchPosts(cursor);
+      }, 300);
     }
-  }, [inView]);
+    
+    return () => {
+      if (fetchDebounceRef.current) {
+        clearTimeout(fetchDebounceRef.current);
+      }
+    };
+  }, [inView, initialLoad, hasMore, loading, cursor, fetchPosts]);
 
   return (
     <div className="flex justify-center gap-8 py-8 px-4">
