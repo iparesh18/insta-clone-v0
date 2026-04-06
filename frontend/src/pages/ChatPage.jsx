@@ -58,25 +58,41 @@ export default function ChatPage() {
   // Load messages for selected conversation AND mark notifications as read
   useEffect(() => {
     if (!userId) return;
+    
     chatAPI.getMessages(userId).then(({ data }) => {
       setMessages(data.data.messages);
       setOtherUser(data.data.otherUser || null);
     }).catch(() => {});
-    chatAPI.markAsRead(userId).catch(() => {});
     
-    // Mark notifications as read in global store
+    chatAPI.markAsRead(userId).catch(() => {});
     markAsRead(userId);
-  }, [userId, markAsRead]);
+    setChatActivity(userId);
+  }, [userId, markAsRead, setChatActivity]);
 
-  // Update online status from notification store
+  // Join chat room and get user's online status
   useEffect(() => {
-    if (!userId) return;
-    const status = getUserOnlineStatus(userId);
-    setUserOnline(status.online);
-    setUserLastSeen(status.lastSeen);
-  }, [userId, getUserOnlineStatus]);
+    if (!userId || !socket) return;
 
-  // Socket events
+    // Tell backend we joined this chat
+    socket.emit("chat:join", { otherUserId: userId });
+
+    // Listen for other user's online status
+    const handleUserStatus = ({ userId: statusUserId, online, lastSeen, timestamp }) => {
+      if (statusUserId === userId) {
+        setUserOnline(online);
+        setUserLastSeen(lastSeen);
+      }
+    };
+
+    socket.on("chat:user_status", handleUserStatus);
+
+    return () => {
+      socket.off("chat:user_status", handleUserStatus);
+      socket.emit("chat:leave", { otherUserId: userId });
+    };
+  }, [userId, socket]);
+
+  // Socket events for live updates
   useEffect(() => {
     if (!socket || !userId) return;
 
@@ -95,18 +111,37 @@ export default function ChatPage() {
       });
     };
 
-    const handleTyping = ({ senderId, isTyping: t }) => {
-      if (senderId === userId) setIsTyping(t);
+    const handleTyping = ({ userId: typingUserId, isTyping: t }) => {
+      if (typingUserId === userId) setIsTyping(t);
+    };
+
+    // Handle real-time online/offline while in chat
+    const handleUserOnline = ({ userId: onlineUserId }) => {
+      if (onlineUserId === userId) {
+        setUserOnline(true);
+        setUserLastSeen(null);
+      }
+    };
+
+    const handleUserOffline = ({ userId: offlineUserId, lastSeen }) => {
+      if (offlineUserId === userId) {
+        setUserOnline(false);
+        setUserLastSeen(lastSeen);
+      }
     };
 
     socket.on("chat:receive", handleReceive);
     socket.on("chat:sent", handleSent);
     socket.on("chat:typing", handleTyping);
+    socket.on("user:online", handleUserOnline);
+    socket.on("user:offline", handleUserOffline);
 
     return () => {
       socket.off("chat:receive", handleReceive);
       socket.off("chat:sent", handleSent);
       socket.off("chat:typing", handleTyping);
+      socket.off("user:online", handleUserOnline);
+      socket.off("user:offline", handleUserOffline);
     };
   }, [socket, userId]);
 

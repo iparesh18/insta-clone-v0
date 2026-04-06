@@ -11,7 +11,12 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const Message = require("../models/Message");
-const { setUserOnline } = require("../redis/redisHelpers");
+const {
+  setUserOnline,
+  refreshUserActivity,
+  setUserOffline,
+  getUserOnlineStatus,
+} = require("../redis/redisHelpers");
 const logger = require("../utils/logger");
 
 const onlineUsers = new Map(); // userId → socketId
@@ -64,19 +69,67 @@ const initSocket = (server) => {
   });
 
   // ── Connection ────────────────────────────────────────────────────────
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const userId = socket.userId;
     onlineUsers.set(userId, socket.id);
-    setUserOnline(userId).catch(() => {});
+
+    try {
+      // Set user online in Redis with longer expiration
+      await setUserOnline(userId);
+      logger.info(`✓ Online: ${userId}`);
+    } catch (err) {
+      logger.error("Failed to set user online:", err.message);
+    }
 
     // Join personal room for direct message routing
     socket.join(`user:${userId}`);
 
-    // Broadcast presence
-    socket.broadcast.emit("user:online", { userId });
-    logger.info(`Socket connected: ${userId}`);
+    // Broadcast presence to all connected clients
+    socket.broadcast.emit("user:online", { userId, timestamp: Date.now() });
 
-    // ── Send message ───────────────────────────────────────────────────
+    // ── Socket Heartbeat (Refresh Activity) ────────────────────────────────
+    socket.on("ping", async () => {
+      try {
+        await refreshUserActivity(userId);
+      } catch (err) {
+        logger.warn("Failed to refresh activity:", err.message);
+      }
+    });
+
+    // ── Join Chat Room ────────────────────────────────────────────────────
+    // Called when user enters a specific chat
+    socket.on("chat:join", async ({ otherUserId }) => {
+      try {
+        if (!otherUserId) return;
+        
+        const roomId = getRoomId(userId, otherUserId);
+        socket.join(`chat:${roomId}`);
+
+        // Get other user's current status from Redis
+        const status = await getUserOnlineStatus(otherUserId);
+
+        // Send back the other user's status
+        socket.emit("chat:user_status", {
+          userId: otherUserId,
+          online: status.online,
+          lastSeen: status.lastSeen,
+          timestamp: Date.now(),
+        });
+
+        logger.info(`User ${userId} joined chat with ${otherUserId} (online: ${status.online})`);
+      } catch (err) {
+        logger.error("chat:join error:", err.message);
+      }
+    });
+
+    // ── Leave Chat Room ────────────────────────────────────────────────────
+    socket.on("chat:leave", ({ otherUserId }) => {
+      if (!otherUserId) return;
+      const roomId = getRoomId(userId, otherUserId);
+      socket.leave(`chat:${roomId}`);
+    });
+
+    // ── Send Message ────────────────────────────────────────────────────────
     socket.on("chat:send", async (data) => {
       try {
         const { receiverId, text, mediaUrl } = data;
@@ -90,54 +143,104 @@ const initSocket = (server) => {
           roomId,
           text: (text || "").trim(),
           mediaUrl: mediaUrl || "",
+          delivered: false,
+          seen: false,
         });
 
         const populated = await message.populate("sender", "username profilePicture");
 
         // Deliver to receiver
         io.to(`user:${receiverId}`).emit("chat:receive", populated);
-        // Confirm to sender
-        socket.emit("chat:sent", populated);
+        // Confirm to sender (mark as delivered)
+        socket.emit("chat:sent", {
+          ...populated.toObject(),
+          delivered: true,
+        });
+
+        logger.info(`Message: ${userId} → ${receiverId}`);
       } catch (err) {
         logger.error("chat:send error:", err.message);
         socket.emit("chat:error", { message: "Failed to send message" });
       }
     });
 
-    // ── Typing indicator ───────────────────────────────────────────────
+    // ── Typing Indicator ───────────────────────────────────────────────────
     socket.on("chat:typing", ({ receiverId, isTyping }) => {
       if (!receiverId) return;
-      io.to(`user:${receiverId}`).emit("chat:typing", { senderId: userId, isTyping });
+      io.to(`user:${receiverId}`).emit("chat:typing", {
+        userId,
+        isTyping,
+        timestamp: Date.now(),
+      });
     });
 
-    // ── Read receipt ───────────────────────────────────────────────────
+    // ── Read Receipt (Messages Seen) ───────────────────────────────────────
     socket.on("chat:read", async ({ senderId }) => {
       try {
         const roomId = getRoomId(userId, senderId);
         await Message.updateMany(
-          { roomId, receiver: userId, isRead: false },
-          { isRead: true }
+          { roomId, receiver: userId, seen: false },
+          { seen: true, seenAt: new Date() }
         );
-        io.to(`user:${senderId}`).emit("chat:read_receipt", { readBy: userId, roomId });
+        io.to(`user:${senderId}`).emit("chat:messages_seen", {
+          seenBy: userId,
+          roomId,
+          timestamp: Date.now(),
+        });
+
+        logger.info(`Messages from ${senderId} seen by ${userId}`);
       } catch (err) {
         logger.error("chat:read error:", err.message);
       }
     });
 
-    // ── Disconnect ─────────────────────────────────────────────────────
-    socket.on("disconnect", () => {
+    // ── Query User Status (Manual Check) ───────────────────────────────────
+    socket.on("user:check_status", async ({ targetUserId }) => {
+      try {
+        if (!targetUserId) return;
+
+        const status = await getUserOnlineStatus(targetUserId);
+
+        socket.emit("user:status_response", {
+          userId: targetUserId,
+          online: status.online,
+          lastSeen: status.lastSeen,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        logger.error("user:check_status error:", err.message);
+      }
+    });
+
+    // ── Disconnect Handler ────────────────────────────────────────────────
+    socket.on("disconnect", async () => {
       onlineUsers.delete(userId);
-      socket.broadcast.emit("user:offline", { userId });
-      logger.info(`Socket disconnected: ${userId}`);
+
+      try {
+        // Mark offline and store last seen timestamp in Redis
+        await setUserOffline(userId);
+        const lastSeen = Date.now();
+
+        // Broadcast to all: this user is now offline
+        socket.broadcast.emit("user:offline", {
+          userId,
+          lastSeen,
+          timestamp: lastSeen,
+        });
+
+        logger.info(`✗ Offline: ${userId}`);
+      } catch (err) {
+        logger.error("Failed to set user offline:", err.message);
+      }
     });
   });
 
-  logger.info("Socket.io initialised");
+  logger.info("Socket.io initialized (production grade)");
   return io;
 };
 
 const getIO = () => {
-  if (!io) throw new Error("Socket.io not initialised");
+  if (!io) throw new Error("Socket.io not initialized");
   return io;
 };
 

@@ -33,15 +33,71 @@ const invalidateFeedCache = async (userId) => {
 
 // ─── Online Presence ─────────────────────────────────────────────────────────
 
+/**
+ * Set user as online. Uses a long expiration (1 hour) with socket ping keeping it alive.
+ * Stores: { onlineAt: timestamp, lastActiveAt: timestamp }
+ */
 const setUserOnline = async (userId) => {
   const client = getRedisClient();
-  await client.setex(`${ONLINE_PREFIX}${userId}`, 60, "1");
+  const now = Date.now();
+  const data = JSON.stringify({
+    onlineAt: now,
+    lastActiveAt: now,
+  });
+  // 1-hour expiration; socket ping will keep it refreshed
+  await client.setex(`${ONLINE_PREFIX}${userId}`, 3600, data);
 };
 
+/**
+ * Refresh last active time (prolongs expiration, keeps user online)
+ */
+const refreshUserActivity = async (userId) => {
+  const client = getRedisClient();
+  const raw = await client.get(`${ONLINE_PREFIX}${userId}`);
+  
+  if (raw) {
+    const data = JSON.parse(raw);
+    data.lastActiveAt = Date.now();
+    await client.setex(`${ONLINE_PREFIX}${userId}`, 3600, JSON.stringify(data));
+  }
+};
+
+/**
+ * Check if user is currently online
+ */
 const isUserOnline = async (userId) => {
   const client = getRedisClient();
-  const val = await client.get(`${ONLINE_PREFIX}${userId}`);
-  return val === "1";
+  const raw = await client.get(`${ONLINE_PREFIX}${userId}`);
+  return raw !== null;
+};
+
+/**
+ * Get user's online status with last seen timestamp
+ * Returns: { online: boolean, lastSeen: timestamp | null }
+ */
+const getUserOnlineStatus = async (userId) => {
+  const client = getRedisClient();
+  const raw = await client.get(`${ONLINE_PREFIX}${userId}`);
+  
+  if (raw) {
+    return { online: true, lastSeen: null };
+  }
+  
+  const lastSeenRaw = await client.get(`${ONLINE_PREFIX}${userId}:lastSeen`);
+  if (lastSeenRaw) {
+    return { online: false, lastSeen: parseInt(lastSeenRaw, 10) };
+  }
+  
+  return { online: false, lastSeen: null };
+};
+
+/**
+ * Mark user as offline and store last seen time (persists for 30 days)
+ */
+const setUserOffline = async (userId) => {
+  const client = getRedisClient();
+  await client.del(`${ONLINE_PREFIX}${userId}`);
+  await client.setex(`${ONLINE_PREFIX}${userId}:lastSeen`, 2592000, Date.now().toString());
 };
 
 module.exports = {
@@ -49,5 +105,8 @@ module.exports = {
   getCachedFeed,
   invalidateFeedCache,
   setUserOnline,
+  refreshUserActivity,
   isUserOnline,
+  getUserOnlineStatus,
+  setUserOffline,
 };

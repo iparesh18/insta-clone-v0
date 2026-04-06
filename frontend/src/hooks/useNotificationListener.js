@@ -1,7 +1,7 @@
 /**
  * hooks/useNotificationListener.js
- * Socket.io listener for new messages with global notification support
- * Also tracks typing indicators and online status
+ * Socket.io listener for messages, typing, online status
+ * Runs globally to track all real-time events
  */
 
 import { useEffect } from "react";
@@ -20,11 +20,7 @@ export function useNotificationListener() {
   useEffect(() => {
     if (!socket || !me) return;
 
-    /**
-     * Listen for incoming messages
-     * Fires whenever a message is sent to the current user
-     * Smart: uses notification store to skip if already chatting
-     */
+    // ─── New Message ─────────────────────────────────────────────────────
     const handleNewMessage = (message) => {
       const senderId =
         typeof message.sender === "string"
@@ -40,28 +36,22 @@ export function useNotificationListener() {
           ? "Someone"
           : message.sender?.username || "Someone";
 
-      showNewMessage(
-        senderUsername,
-        message.text?.slice(0, 50) || "[Message]"
-      );
+      showNewMessage(senderUsername, message.text?.slice(0, 50) || "[Message]");
     };
 
-    /**
-     * Track typing indicators
-     */
+    // ─── Typing Indicator ────────────────────────────────────────────────
     const handleUserTyping = ({ userId, isTyping }) => {
       setUserTyping(userId, isTyping);
     };
 
-    /**
-     * Track online status of other users
-     */
-    const handleUserOnline = ({ userId }) => {
-      setUserOnlineStatus(userId, true);
+    // ─── User Online ────────────────────────────────────────────────────
+    const handleUserOnline = ({ userId, timestamp }) => {
+      setUserOnlineStatus(userId, true, null); // Online, no lastSeen
     };
 
-    const handleUserOffline = ({ userId, lastSeen }) => {
-      setUserOnlineStatus(userId, false, lastSeen);
+    // ─── User Offline ───────────────────────────────────────────────────
+    const handleUserOffline = ({ userId, lastSeen, timestamp }) => {
+      setUserOnlineStatus(userId, false, lastSeen || timestamp);
     };
 
     socket.on("chat:receive", handleNewMessage);
