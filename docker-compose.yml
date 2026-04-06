@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: ig_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: instagram_clone
+
+  redis:
+    image: redis:7-alpine
+    container_name: ig_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ig_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file: ./backend/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/instagram_clone
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ig_worker
+    restart: unless-stopped
+    command: node jobs/worker.js
+    env_file: ./backend/.env
+    environment:
+      MONGO_URI: mongodb://mongo:27017/instagram_clone
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ig_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mongo_data:
+  redis_data:
