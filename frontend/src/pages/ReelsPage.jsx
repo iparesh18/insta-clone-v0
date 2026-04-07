@@ -12,12 +12,14 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useInView } from "react-intersection-observer";
+import { useNavigate } from "react-router-dom";
 import ReelItem from "@/components/reel/ReelItem";
 import CreateReelModal from "@/components/reel/CreateReelModal";
 import { reelAPI } from "@/api/services";
 import useReelsStore from "@/store/reelsStore";
 
 export default function ReelsPage() {
+  const navigate = useNavigate();
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -31,11 +33,9 @@ export default function ReelsPage() {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
-      console.log("📥 Fetching reels, cursor:", cursor);
-      const { data } = await reelAPI.getFeed(cursor);
-      console.log("📊 Reels fetch response:", data);
+      const res = await reelAPI.getFeed(cursor);
+      const data = res.data;
       const newReels = data.data.reels || data.data || [];
-      console.log("   Got", newReels.length, "reels");
       
       setReels(cursor ? [...reels, ...newReels] : newReels);
       setCursor(data.pagination?.nextCursor);
@@ -49,36 +49,46 @@ export default function ReelsPage() {
   }, [cursor, loading, hasMore, reels, setReels]);
 
   useEffect(() => {
-    if (reels.length === 0) {
+    if (reels.length === 0 && !loading) {
       fetchReels();
     }
   }, []);
 
+  // Trigger fetch when reels empty or infinite scroll
   useEffect(() => {
-    if (inView) fetchReels();
-  }, [inView]);
+    if (reels.length === 0 && !loading) {
+      fetchReels();
+    }
+  }, [reels.length, loading, fetchReels]);
+
+  useEffect(() => {
+    if (inView && hasMore && !loading) fetchReels();
+  }, [inView, hasMore, loading, fetchReels]);
 
   const handleReelCreated = (reel) => {
-    console.log("🎥 handleReelCreated called with reel:", reel);
     if (!reel?._id) {
       console.warn("⚠️ Reel has no _id, skipping");
       return;
     }
     
     addReel({ ...reel, isLiked: false });
-    console.log("✅ Reel added to store");
   };
 
+  if (loading && reels.length === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black">
+        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!loading && reels.length === 0) {
-    console.warn("⚠️ ReelsPage: showing empty state - loading:", loading, "reels.length:", reels.length);
     return (
       <div className="h-screen flex items-center justify-center">
         <p className="text-ig-gray">No reels yet. Be the first to upload!</p>
       </div>
     );
   }
-
-  console.log("✅ ReelsPage: rendering", reels.length, "reels");
   
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center overflow-hidden">
@@ -89,9 +99,9 @@ export default function ReelsPage() {
       </div>
 
       {/* Mobile/Centered Reel Container */}
-      <div className="relative w-full lg:max-w-[450px] h-screen overflow-hidden">
+      <div className="relative w-full lg:max-w-[450px] h-screen overflow-hidden flex flex-col">
         {/* Reel scroll snap container */}
-        <div className="reel-container w-full h-full relative">
+        <div className="reel-container flex-1 w-full relative overflow-hidden">
           {[...reels].reverse().map((reel, index) => (
             <ReelItem
               key={reel._id}

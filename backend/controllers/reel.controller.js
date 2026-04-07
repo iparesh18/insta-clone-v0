@@ -136,51 +136,204 @@ const createReel = async (req, res, next) => {
  *
  * This gives stable, duplicate-free pagination even as scores change.
  */
+// ─── HYBRID FEED HELPER FUNCTIONS ────────────────────────────────────────────
+
+/**
+ * Calculate trending score based on engagement
+ */
+const calculateTrendingScore = (reel) => {
+  const likes = reel.likeCount || 0;
+  const comments = reel.comments?.length || 0;
+  const views = reel.viewCount || 0;
+  return likes * 2 + comments * 1.5 + views * 0.5;
+};
+
+/**
+ * Get user's liked reel categories for personalization
+ */
+const getUserLikedCategories = async (userId) => {
+  try {
+    const likedReelIds = await Like.find({
+      user: userId,
+      targetType: "Reel",
+    }).distinct("targetId");
+
+    if (likedReelIds.length === 0) return {};
+
+    const likedReels = await Reel.find({
+      _id: { $in: likedReelIds },
+    }).select("category");
+
+    const categoryMap = {};
+    likedReels.forEach((reel) => {
+      const cat = reel.category || "general";
+      categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+    });
+    return categoryMap;
+  } catch (e) {
+    console.log("⚠️  Could not fetch user preferences");
+    return {};
+  }
+};
+
+/**
+ * Generate deterministic random factor based on userId + reelId
+ */
+const getRandomFactor = (userId, reelId) => {
+  const combined = userId.toString() + reelId.toString();
+  let hash = 0;
+  for (let i = 0; i < combined.length; i++) {
+    hash = (hash << 5) - hash + combined.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return (Math.abs(hash) % 20) * 0.01; // 0 to 0.19
+};
+
+/**
+ * Merge popular + fresh feeds with deduplication
+ */
+const mergeAndPersonalizeFeeds = (
+  popularReels,
+  freshReels,
+  userCategoryPrefs,
+  userId
+) => {
+  const reelMap = new Map(); // Deduplicate by reel._id
+
+  // Add popular reels (70% weight)
+  popularReels.forEach((reel) => {
+    if (reelMap.has(reel._id.toString())) return; // Skip duplicates
+
+    const trendingScore = calculateTrendingScore(reel);
+    const category = reel.category || "general";
+    const boost = (userCategoryPrefs[category] || 0) * 0.1;
+    const randomFactor = getRandomFactor(userId, reel._id);
+
+    reelMap.set(reel._id.toString(), {
+      reel,
+      finalScore: trendingScore + boost + randomFactor,
+      isPopular: true,
+    });
+  });
+
+  // Add fresh reels (30% weight) - lower weight
+  freshReels.forEach((reel) => {
+    if (reelMap.has(reel._id.toString())) return; // Skip already-added reels
+
+    const trendingScore = calculateTrendingScore(reel);
+    const category = reel.category || "general";
+    const boost = (userCategoryPrefs[category] || 0) * 0.1;
+    const randomFactor = getRandomFactor(userId, reel._id);
+
+    reelMap.set(reel._id.toString(), {
+      reel,
+      finalScore: trendingScore + boost + randomFactor,
+      isPopular: false,
+    });
+  });
+
+  // Convert to array and sort by finalScore
+  const combined = Array.from(reelMap.values());
+  return combined.sort((a, b) => b.finalScore - a.finalScore);
+};
+
+/**
+ * Apply cursor pagination
+ */
+const applyReelCursor = (reels, cursor) => {
+  if (!cursor) return reels;
+
+  const [scoreStr, idStr] = cursor.split("_");
+  const cursorScore = parseInt(scoreStr);
+  const ObjectId = require("mongoose").Types.ObjectId;
+  
+  try {
+    const cursorId = new ObjectId(idStr);
+    // Filter: score < cursorScore OR (score == cursorScore AND _id < cursorId)
+    return reels.filter((item) => {
+      const reelScore = Math.floor(item.finalScore);
+      if (reelScore < cursorScore) return true;
+      if (reelScore === cursorScore && item.reel._id < cursorId) return true;
+      return false;
+    });
+  } catch (e) {
+    console.log("⚠️  Cursor parsing failed, ignoring cursor");
+    return reels;
+  }
+};
+
+// ─── Get Personalized Reel Feed (Hybrid: Popular + Fresh with Dedup) ────────
 const getReelFeed = async (req, res, next) => {
   try {
     const { cursor, limit = 10 } = req.query;
     const parsedLimit = Math.min(parseInt(limit), 20);
+    const userId = req.user._id;
 
-    let query = { isArchived: false };
-
-    if (cursor) {
-      // cursor format: "score_id"
-      const [scoreStr, idStr] = cursor.split("_");
-      const lastScore = parseInt(scoreStr);
-      query.$or = [
-        { score: { $lt: lastScore } },
-        { score: lastScore, _id: { $lt: idStr } },
-      ];
-    }
-
-    const reels = await Reel.find(query)
-      .sort({ score: -1, _id: -1 })
-      .limit(parsedLimit)
+    // 1️⃣ Fetch popular reels (up to 35)
+    const popularReels = await Reel.find({ isArchived: false })
+      .sort({ likeCount: -1, viewCount: -1 })
+      .limit(35)
       .populate("author", "username profilePicture isVerified");
 
-    const hasMore = reels.length === parsedLimit;
+    // 2️⃣ Fetch fresh reels (up to 15)
+    const freshReels = await Reel.find({ isArchived: false })
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .populate("author", "username profilePicture isVerified");
+
+    // 3️⃣ Get user preferences
+    const userCategoryPrefs = await getUserLikedCategories(userId);
+
+    // 4️⃣ Merge with deduplication and personalization
+    let mergedReels = mergeAndPersonalizeFeeds(
+      popularReels,
+      freshReels,
+      userCategoryPrefs,
+      userId
+    );
+
+    // 5️⃣ Handle small dataset case
+    if (mergedReels.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: { reels: [] },
+        pagination: { hasMore: false, nextCursor: null },
+      });
+    }
+
+    // 6️⃣ Apply cursor pagination
+    const paginatedReels = applyReelCursor(mergedReels, cursor);
+
+    // 7️⃣ Slice to limit
+    const reelsToReturn = paginatedReels.slice(0, parsedLimit + 1);
+    const hasMore = reelsToReturn.length > parsedLimit;
+    const finalReels = reelsToReturn.slice(0, parsedLimit);
+
+    // 8️⃣ Get like status
+    const reelIds = finalReels.map((r) => r.reel._id);
+    const likes = await Like.find({
+      user: userId,
+      targetId: { $in: reelIds },
+      targetType: "Reel",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
+    // 9️⃣ Build response (preserve full reel structure)
+    const enrichedReels = finalReels.map((item) => {
+      const reelObj = item.reel.toObject?.() || item.reel;
+      return {
+        ...reelObj,
+        isLiked: likedSet.has(String(item.reel._id)),
+      };
+    });
+
+    // 🔟 Generate next cursor
     let nextCursor = null;
-    if (hasMore) {
-      const last = reels[reels.length - 1];
-      nextCursor = `${last.score}_${last._id}`;
+    if (hasMore && finalReels.length > 0) {
+      const lastItem = finalReels[finalReels.length - 1];
+      const score = Math.floor(lastItem.finalScore);
+      nextCursor = `${score}_${lastItem.reel._id}`;
     }
-
-    // Attach isLiked for current user
-    let likedSet = new Set();
-    if (req.user) {
-      const reelIds = reels.map((r) => r._id);
-      const likes = await Like.find({
-        user: req.user._id,
-        targetId: { $in: reelIds },
-        targetType: "Reel",
-      }).select("targetId");
-      likedSet = new Set(likes.map((l) => String(l.targetId)));
-    }
-
-    const enrichedReels = reels.map((r) => ({
-      ...r.toObject(),
-      isLiked: likedSet.has(String(r._id)),
-    }));
 
     return res.status(200).json({
       success: true,
@@ -188,7 +341,35 @@ const getReelFeed = async (req, res, next) => {
       pagination: { hasMore, nextCursor },
     });
   } catch (err) {
-    next(err);
+    console.error("❌ Hybrid feed error:", err);
+    // FALLBACK: Return simple ranked feed
+    try {
+      const fallbackReels = await Reel.find({ isArchived: false })
+        .sort({ likeCount: -1, viewCount: -1 })
+        .limit(10)
+        .populate("author", "username profilePicture isVerified");
+
+      const reelIds = fallbackReels.map((r) => r._id);
+      const likes = await Like.find({
+        user: req.user._id,
+        targetId: { $in: reelIds },
+        targetType: "Reel",
+      }).select("targetId");
+      const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
+      const enriched = fallbackReels.map((r) => ({
+        ...r.toObject(),
+        isLiked: likedSet.has(String(r._id)),
+      }));
+
+      return res.status(200).json({
+        success: true,
+        data: { reels: enriched },
+        pagination: { hasMore: false, nextCursor: null },
+      });
+    } catch (fallbackErr) {
+      next(fallbackErr);
+    }
   }
 };
 
@@ -440,5 +621,6 @@ const getUserReels = async (req, res, next) => {
     next(err);
   }
 };
+
 
 module.exports = { createReel, getReelFeed, getReel, getUserReels, registerView, toggleLike, deleteReel, getComments, addComment, deleteComment };
