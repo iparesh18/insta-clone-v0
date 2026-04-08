@@ -136,6 +136,13 @@ export default function PostDetailModal({ postId, onClose }) {
                 <Link to={`/${post.author?.username}`} className="text-sm font-semibold">{post.author?.username}</Link>
               </div>
 
+              {/* Caption Section */}
+              {post.caption && (
+                <div className="p-4 border-b border-ig-border bg-gray-50 dark:bg-gray-900">
+                  <p className="text-sm text-ig-dark dark:text-white">{post.caption}</p>
+                </div>
+              )}
+
               <div className="p-4 border-b border-ig-border">
                 <button onClick={handleToggleLike} className="inline-flex items-center gap-2 text-sm font-semibold">
                   <Heart size={18} className={liked ? "fill-red-500 text-red-500" : "text-ig-dark"} />

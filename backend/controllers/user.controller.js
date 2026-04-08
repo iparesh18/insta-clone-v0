@@ -26,6 +26,7 @@ const { avatarUpload } = require("../middlewares/upload");
 const { uploadToImageKit, deleteFromImageKit } = require("../utils/uploadToImageKit");
 const { invalidateFeedCache } = require("../redis/redisHelpers");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
+const { createNotification } = require("./notification.controller");
 
 const canViewPrivateAccount = async (viewerId, targetId) => {
   if (String(viewerId) === String(targetId)) return true;
@@ -159,6 +160,9 @@ const followUser = async (req, res, next) => {
       await User.findByIdAndUpdate(targetId, { $inc: { followerCount: 1 } });
       // Invalidate requester's feed cache
       await invalidateFeedCache(String(req.user._id));
+      
+      // Notify followed user
+      await createNotification(targetId, req.user._id, "follow", null, null);
     }
 
     const message = status === "pending" ? "Follow request sent" : "Followed successfully";

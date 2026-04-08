@@ -12,6 +12,11 @@ const useNotificationStore = create((set, get) => ({
   unreadByUser: {}, // { userId: count }
   seenMessageIds: new Set(), // Track seen message IDs to prevent duplicates
 
+  // App Notifications (likes, comments, follows, etc.)
+  appNotifications: [], // Array of app notifications
+  appUnreadCount: 0, // Unread app notifications count
+  notificationsLoading: false,
+
   // Chat activity state (smart notifications)
   currentChatUserId: null, // If user is in chat with someone, store their ID
   tabActive: true, // Track if browser tab is active
@@ -232,6 +237,136 @@ const useNotificationStore = create((set, get) => ({
    */
   showInfo: (message, duration = 4000) => {
     get().addToast({ type: "info", message, duration });
+  },
+
+  /**
+   * Fetch app notifications from server
+   */
+  fetchAppNotifications: async (limit = 20, skip = 0) => {
+    set({ notificationsLoading: true });
+    try {
+      const response = await fetch(`/api/v1/notifications?limit=${limit}&skip=${skip}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+      
+      const data = await response.json();
+      const { notifications, pagination } = data.data;
+      
+      set({
+        appNotifications: notifications,
+        appUnreadCount: pagination.unreadCount,
+        notificationsLoading: false,
+      });
+      
+      return pagination;
+    } catch (err) {
+      console.error("❌ Failed to fetch app notifications:", err);
+      set({ notificationsLoading: false });
+      return null;
+    }
+  },
+
+  /**
+   * Add real-time notification from Socket.io
+   */
+  addAppNotification: (notification) => {
+    set((state) => ({
+      appNotifications: [notification, ...state.appNotifications],
+      appUnreadCount: state.appUnreadCount + 1,
+    }));
+  },
+
+  /**
+   * Mark app notification as read
+   */
+  markNotificationAsRead: async (notificationId) => {
+    try {
+      const response = await fetch(`/api/v1/notifications/${notificationId}/read`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to mark notification as read");
+
+      set((state) => ({
+        appNotifications: state.appNotifications.map((n) =>
+          n._id === notificationId ? { ...n, isRead: true } : n
+        ),
+        appUnreadCount: Math.max(0, state.appUnreadCount - 1),
+      }));
+    } catch (err) {
+      console.error("❌ Failed to mark notification as read:", err);
+    }
+  },
+
+  /**
+   * Mark all notifications as read
+   */
+  markAllNotificationsAsRead: async () => {
+    try {
+      const response = await fetch("/api/v1/notifications/read-all", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to mark all as read");
+
+      set((state) => ({
+        appNotifications: state.appNotifications.map((n) => ({ ...n, isRead: true })),
+        appUnreadCount: 0,
+      }));
+    } catch (err) {
+      console.error("❌ Failed to mark all notifications as read:", err);
+    }
+  },
+
+  /**
+   * Delete an app notification
+   */
+  deleteAppNotification: async (notificationId) => {
+    try {
+      const response = await fetch(`/api/v1/notifications/${notificationId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete notification");
+
+      set((state) => ({
+        appNotifications: state.appNotifications.filter((n) => n._id !== notificationId),
+      }));
+    } catch (err) {
+      console.error("❌ Failed to delete notification:", err);
+    }
+  },
+
+  /**
+   * Show new app notification toast
+   */
+  showNotificationToast: (actor, type) => {
+    const messages = {
+      follow: `${actor.username} followed you`,
+      like: `${actor.username} liked your post`,
+      comment: `${actor.username} commented on your post`,
+      post: `${actor.username} posted something new`,
+    };
+    
+    get().addToast({
+      type: "notification",
+      message: messages[type] || `${actor.username} did something`,
+      actor,
+      duration: 5000,
+    });
   },
 
   /**

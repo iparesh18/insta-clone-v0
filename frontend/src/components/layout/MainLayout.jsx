@@ -2,11 +2,11 @@
  * components/layout/MainLayout.jsx - FIXED v2
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, Compass, Film, MessageCircle, PlusSquare,
+  Home, Compass, Film, MessageCircle, Bell, PlusSquare,
   Menu, LogOut, Settings, Bookmark,
 } from "lucide-react";
 import useAuthStore from "@/store/authStore";
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { to: "/explore", icon: Compass, label: "Explore" },
   { to: "/reels", icon: Film, label: "Reels" },
   { to: "/chat", icon: MessageCircle, label: "Messages" },
+  { to: "/notifications", icon: Bell, label: "Notifications" },
 ];
 
 function IgWordmark() {
@@ -48,6 +49,8 @@ function IgIcon() {
 export default function MainLayout() {
   const { user, logout } = useAuthStore();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const appUnreadCount = useNotificationStore((s) => s.appUnreadCount);
+  const fetchAppNotifications = useNotificationStore((s) => s.fetchAppNotifications);
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateReel, setShowCreateReel] = useState(false);
@@ -56,6 +59,13 @@ export default function MainLayout() {
 
   // Start listening for notifications globally
   useNotificationListener();
+
+  // Fetch notification count on mount
+  useEffect(() => {
+    fetchAppNotifications(1, 0).catch(() => {
+      // Silently fail if notifications aren't ready yet
+    });
+  }, [fetchAppNotifications]);
 
   const handleLogout = async () => {
     await logout();
@@ -86,6 +96,14 @@ export default function MainLayout() {
                                     text-white text-xs font-bold rounded-full
                                     flex items-center justify-center">
                       {unreadCount > 99 ? "99+" : unreadCount}
+                    </div>
+                  )}
+                  {/* Notification badge for Notifications Bell */}
+                  {to === "/notifications" && appUnreadCount > 0 && (
+                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500
+                                    text-white text-xs font-bold rounded-full
+                                    flex items-center justify-center animate-pulse">
+                      {appUnreadCount > 99 ? "99+" : appUnreadCount}
                     </div>
                   )}
                 </div>

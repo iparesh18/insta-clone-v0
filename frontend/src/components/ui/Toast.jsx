@@ -5,7 +5,7 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, AlertCircle, Info, MessageCircle } from "lucide-react";
+import { X, CheckCircle, AlertCircle, Info, MessageCircle, Bell } from "lucide-react";
 import useNotificationStore from "@/store/notificationStore";
 
 function ToastItem({ toast }) {
@@ -21,6 +21,8 @@ function ToastItem({ toast }) {
         return <Info className="w-5 h-5 text-blue-500" />;
       case "newMessage":
         return <MessageCircle className="w-5 h-5 text-blue-500" />;
+      case "notification":
+        return <Bell className="w-5 h-5 text-purple-500" />;
       default:
         return null;
     }
@@ -35,6 +37,8 @@ function ToastItem({ toast }) {
       case "info":
       case "newMessage":
         return "bg-blue-50 border-blue-200";
+      case "notification":
+        return "bg-purple-50 border-purple-200";
       default:
         return "bg-gray-50 border-gray-200";
     }
@@ -49,6 +53,8 @@ function ToastItem({ toast }) {
       case "info":
       case "newMessage":
         return "text-blue-800";
+      case "notification":
+        return "text-purple-800";
       default:
         return "text-gray-800";
     }
@@ -57,6 +63,9 @@ function ToastItem({ toast }) {
   const getMessage = () => {
     if (toast.type === "newMessage") {
       return `New message from ${toast.username}`;
+    }
+    if (toast.type === "notification") {
+      return toast.message;
     }
     return toast.message;
   };

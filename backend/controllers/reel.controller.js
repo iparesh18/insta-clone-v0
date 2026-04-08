@@ -17,6 +17,7 @@ const path = require("path");
 const { uploadToImageKit, deleteFromImageKit } = require("../utils/uploadToImageKit");
 const { reelViewQueue } = require("../queues");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
+const { createNotification } = require("./notification.controller");
 
 // ─── Create Reel ─────────────────────────────────────────────────────────────
 /**
@@ -425,7 +426,7 @@ const registerView = async (req, res, next) => {
 // ─── Toggle Like ─────────────────────────────────────────────────────────────
 const toggleLike = async (req, res, next) => {
   try {
-    const reel = await Reel.findById(req.params.id);
+    const reel = await Reel.findById(req.params.id).select("_id author");
     if (!reel) return sendError(res, "Reel not found", 404);
 
     const existing = await Like.findOneAndDelete({
@@ -453,6 +454,11 @@ const toggleLike = async (req, res, next) => {
       { $inc: { likeCount: 1 } },
       { new: true }
     ).select("likeCount");
+
+    // Notify reel author about the like (skip if self-like)
+    if (String(reel.author) !== String(req.user._id)) {
+      await createNotification(reel.author, req.user._id, "like", reel._id, "Reel");
+    }
 
     return sendSuccess(res, {
       liked: true,
@@ -513,7 +519,7 @@ const addComment = async (req, res, next) => {
     const { text } = req.body;
     if (!text || !text.trim()) return sendError(res, "Comment text is required", 400);
 
-    const reel = await Reel.findById(req.params.id).select("_id");
+    const reel = await Reel.findById(req.params.id).select("_id author");
     if (!reel) return sendError(res, "Reel not found", 404);
 
     const comment = await Comment.create({
@@ -524,6 +530,11 @@ const addComment = async (req, res, next) => {
     });
 
     await Reel.findByIdAndUpdate(reel._id, { $inc: { commentCount: 1 } });
+
+    // Notify reel author about the comment (skip if self-comment)
+    if (String(reel.author) !== String(req.user._id)) {
+      await createNotification(reel.author, req.user._id, "comment", reel._id, "Reel");
+    }
 
     const populated = await comment.populate("author", "username profilePicture isVerified");
     return sendSuccess(res, { comment: populated }, "Comment added", 201);

@@ -20,6 +20,7 @@ import ExplorePage from "@/pages/ExplorePage";
 import ReelsPage from "@/pages/ReelsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import ChatPage from "@/pages/ChatPage";
+import NotificationPage from "@/pages/NotificationPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const Spinner = () => (
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/reels" element={<ReelsPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:userId" element={<ChatPage />} />
+          <Route path="/notifications" element={<NotificationPage />} />
           <Route path="/:username" element={<ProfilePage />} />
         </Route>
 

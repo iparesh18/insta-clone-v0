@@ -105,3 +105,7 @@ export const shareAPI = {
     api.get(`/share/reels${cursor ? `?cursor=${cursor}` : ""}`),
   markAsRead: (shareId) => api.patch(`/share/${shareId}/read`),
 };
+
+export const searchAPI = {
+  global: (q) => api.get(`/search?q=${encodeURIComponent(q)}`),
+};

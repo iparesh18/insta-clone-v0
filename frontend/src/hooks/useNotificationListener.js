@@ -16,6 +16,8 @@ export function useNotificationListener() {
   const showNewMessage = useNotificationStore((s) => s.showNewMessage);
   const setUserTyping = useNotificationStore((s) => s.setUserTyping);
   const setUserOnlineStatus = useNotificationStore((s) => s.setUserOnlineStatus);
+  const addAppNotification = useNotificationStore((s) => s.addAppNotification);
+  const showNotificationToast = useNotificationStore((s) => s.showNotificationToast);
 
   useEffect(() => {
     if (!socket || !me) return;
@@ -54,16 +56,25 @@ export function useNotificationListener() {
       setUserOnlineStatus(userId, false, lastSeen || timestamp);
     };
 
+    // ─── App Notifications (likes, comments, follows) ──────────────────
+    const handleNewNotification = (notification) => {
+      console.log("🔔 New notification received:", notification);
+      addAppNotification(notification);
+      showNotificationToast(notification.actor, notification.type);
+    };
+
     socket.on("chat:receive", handleNewMessage);
     socket.on("chat:typing", handleUserTyping);
     socket.on("user:online", handleUserOnline);
     socket.on("user:offline", handleUserOffline);
+    socket.on("new_notification", handleNewNotification);
 
     return () => {
       socket.off("chat:receive", handleNewMessage);
       socket.off("chat:typing", handleUserTyping);
       socket.off("user:online", handleUserOnline);
       socket.off("user:offline", handleUserOffline);
+      socket.off("new_notification", handleNewNotification);
     };
-  }, [socket, me, addUnreadMessage, showNewMessage, setUserTyping, setUserOnlineStatus]);
+  }, [socket, me, addUnreadMessage, showNewMessage, setUserTyping, setUserOnlineStatus, addAppNotification, showNotificationToast]);
 }

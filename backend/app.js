@@ -24,6 +24,8 @@ const reelRoutes = require("./routes/reel.routes");
 const storyRoutes = require("./routes/story.routes");
 const chatRoutes = require("./routes/chat.routes");
 const shareRoutes = require("./routes/share.routes");
+const searchRoutes = require("./routes/search.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 const app = express();
 
@@ -71,6 +73,8 @@ app.use("/api/v1/reels", reelRoutes);
 app.use("/api/v1/stories", storyRoutes);
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/share", shareRoutes);
+app.use("/api/v1/search", searchRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

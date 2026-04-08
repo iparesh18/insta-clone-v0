@@ -19,6 +19,7 @@ const fs = require("fs");
 const { uploadToImageKit, deleteFromImageKit } = require("../utils/uploadToImageKit");
 const { getCachedFeed, cacheFeed } = require("../redis/redisHelpers");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
+const { createNotification } = require("./notification.controller");
 
 // Extract hashtags from caption
 const extractTags = (caption = "") =>
@@ -193,7 +194,7 @@ const deletePost = async (req, res, next) => {
  */
 const toggleLike = async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.id).select("_id");
+    const post = await Post.findById(req.params.id).select("_id author");
     if (!post) return sendError(res, "Post not found", 404);
 
     const existing = await Like.findOneAndDelete({
@@ -227,6 +228,17 @@ const toggleLike = async (req, res, next) => {
       { $inc: { likeCount: 1 } },
       { new: true }
     ).select("likeCount");
+
+    // Notify post author about the like (skip if self-like)
+    if (String(post.author) !== String(req.user._id)) {
+      await createNotification(
+        post.author,
+        req.user._id,
+        "like",
+        post._id,
+        "Post"
+      );
+    }
 
     return sendSuccess(res, {
       liked: true,
@@ -293,7 +305,7 @@ const addComment = async (req, res, next) => {
     const { text } = req.body;
     if (!text || !text.trim()) return sendError(res, "Comment text is required", 400);
 
-    const post = await Post.findById(req.params.id).select("_id");
+    const post = await Post.findById(req.params.id).select("_id author");
     if (!post) return sendError(res, "Post not found", 404);
 
     const comment = await Comment.create({
@@ -304,6 +316,17 @@ const addComment = async (req, res, next) => {
     });
 
     await Post.findByIdAndUpdate(post._id, { $inc: { commentCount: 1 } });
+
+    // Notify post author about the comment (skip if self-comment)
+    if (String(post.author) !== String(req.user._id)) {
+      await createNotification(
+        post.author,
+        req.user._id,
+        "comment",
+        post._id,
+        "Post"
+      );
+    }
 
     const populated = await comment.populate("author", "username profilePicture isVerified");
     return sendSuccess(res, { comment: populated }, "Comment added", 201);
