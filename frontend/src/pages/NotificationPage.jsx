@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import useNotificationStore from "@/store/notificationStore";
 import Avatar from "@/components/ui/Avatar";
 import PostDetailModal from "@/components/post/PostDetailModal";
+import ReelModal from "@/components/reel/ReelModal";
+import { reelAPI } from "@/api/services";
 
 /**
  * pages/NotificationPage.jsx
@@ -25,6 +27,7 @@ export default function NotificationPage() {
 
   const [pagination, setPagination] = useState(null);
   const [selectedPostId, setSelectedPostId] = useState(null);
+  const [selectedReel, setSelectedReel] = useState(null);
 
   useEffect(() => {
     // Fetch notifications on mount
@@ -62,7 +65,7 @@ export default function NotificationPage() {
     }
   };
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {
       markNotificationAsRead(notification._id);
     }
@@ -71,10 +74,16 @@ export default function NotificationPage() {
     if (notification.type === "follow") {
       navigate(`/${notification.actor.username}`);
     } else if (notification.referenceType === "Post") {
-      // Open post modal instead of navigating
+      // Open post modal
       setSelectedPostId(notification.referenceId);
     } else if (notification.referenceType === "Reel") {
-      navigate(`/reels`);
+      // Fetch and open reel modal
+      try {
+        const res = await reelAPI.getReel(notification.referenceId);
+        setSelectedReel(res.data.data.reel);
+      } catch (err) {
+        console.error("Failed to load reel:", err);
+      }
     }
   };
 
@@ -194,6 +203,14 @@ export default function NotificationPage() {
         <PostDetailModal
           postId={selectedPostId}
           onClose={() => setSelectedPostId(null)}
+        />
+      )}
+
+      {/* Reel Modal */}
+      {selectedReel && (
+        <ReelModal
+          reel={selectedReel}
+          onClose={() => setSelectedReel(null)}
         />
       )}
     </div>

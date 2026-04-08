@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactPlayer from "react-player/lazy";
-import { Heart, MessageCircle, Bookmark, X, VolumeX, Volume2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, X, VolumeX, Volume2, MoreVertical, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Avatar from "@/components/ui/Avatar";
 import ReelCommentSheet from "./ReelCommentSheet";
 import useAuthStore from "@/store/authStore";
 import useReelsStore from "@/store/reelsStore";
+import { reelAPI } from "@/api/services";
 import toast from "react-hot-toast";
 
 const formatCount = (n) => {
@@ -28,6 +29,9 @@ export default function ReelModal({ reel, onClose }) {
   const [likeCount, setLikeCount] = useState(reel?.likeCount || 0);
   const [commentCount, setCommentCount] = useState(reel?.commentCount || 0);
   const [isSaved, setIsSaved] = useState(savedReels.has(reel?._id));
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const playerRef = useRef(null);
   const isOwn = user?._id === reel?.author?._id;
 
@@ -77,6 +81,22 @@ export default function ReelModal({ reel, onClose }) {
     updateCommentCount(reel._id, newCount);
   };
 
+  const handleDeleteReel = async () => {
+    setDeleting(true);
+    try {
+      await reelAPI.delete(reel._id);
+      deleteReel(reel._id); // Remove from Zustand store
+      toast.success("Reel deleted successfully");
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete reel:", err);
+      toast.error(err?.response?.data?.message || "Failed to delete reel");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {/* Overlay */}
@@ -97,6 +117,37 @@ export default function ReelModal({ reel, onClose }) {
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div className="bg-black rounded-2xl overflow-hidden shadow-2xl max-w-[420px] w-full flex flex-col h-[90vh] pointer-events-auto">
+          {/* Menu Button */}
+          {isOwn && (
+            <div className="absolute top-3 left-3 z-10">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="bg-black/40 rounded-full p-2 text-white hover:bg-black/60 transition"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {showMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="absolute top-12 left-0 bg-black/95 rounded-lg shadow-lg min-w-[150px] overflow-hidden z-20"
+                >
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/20 transition text-sm font-medium"
+                  >
+                    <Trash2 size={16} />
+                    Delete Reel
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          )}
+
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -219,6 +270,55 @@ export default function ReelModal({ reel, onClose }) {
           commentCount={commentCount}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 z-[60] bg-black/70"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+                <div className="p-6">
+                  <h3 className="text-lg font-bold mb-2">Delete Reel?</h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Are you sure you want to delete this reel? This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900
+                                 font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteReel}
+                      disabled={deleting}
+                      className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white
+                                 font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {deleting ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 }

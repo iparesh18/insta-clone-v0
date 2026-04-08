@@ -1583,24 +1583,6 @@ score = (likes × 3) + (views × 1) - (hoursOld × 2)
 - Video transcoding support
 - On-the-fly resizing (responsive images)
 
----
-
-## 🔭 Future Enhancement Opportunities
-
-1. **Machine Learning Ranking** - Incorporate engagement patterns, user behavior
-2. **Notification Categories** - Filter notifications by type
-3. **Dark Mode** - CSS variables + Zustand store
-4. **Video Compression** - Server-side with ffmpeg
-5. **Analytics Dashboard** - User engagement metrics
-6. **Hashtag Trending** - Compute trending scores
-7. **User Recommendations** - Collaborative filtering
-8. **Stories Analytics** - Viewer insights
-9. **Scheduled Posts** - BullMQ delayed jobs
-10. **Push Notifications** - FCM integration
-11. **Full-text Search** - Elasticsearch for massive scale
-12. **CDN Image Transform** - ImageKit parameters for responsive images
-
----
 
 ## 📝 Summary
 

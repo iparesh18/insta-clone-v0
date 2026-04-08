@@ -419,6 +419,45 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+// ─── Get Suggested Users ──────────────────────────────────────────────────────
+/**
+ * GET /users/suggestions
+ * Returns 5-10 users not yet followed by current user
+ * Logic: Exclude current user + already followed users, then sort by followerCount or random
+ */
+const getSuggestions = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { limit = 8 } = req.query;
+    const parsedLimit = Math.min(parseInt(limit), 20);
+
+    console.log(`👥 [SUGGESTIONS] Fetching for user: ${userId}`);
+
+    // Get list of users already followed
+    const followedUsers = await Follow.find({ follower: userId }).select("following");
+    const followedIds = followedUsers.map((f) => f.following);
+    
+    // Add current user to exclude list
+    const excludeIds = [userId, ...followedIds];
+
+    // Fetch users not followed, sorted by followerCount (descending) then random
+    const suggestions = await User.find({
+      _id: { $nin: excludeIds },
+    })
+      .select("_id username fullName profilePicture followerCount isVerified")
+      .sort({ followerCount: -1 })
+      .limit(parsedLimit)
+      .lean();
+
+    console.log(`✅ [SUGGESTIONS] Found ${suggestions.length} suggestions`);
+
+    return sendSuccess(res, { users: suggestions }, "Suggestions fetched successfully");
+  } catch (err) {
+    console.error("❌ Failed to fetch suggestions:", err);
+    next(err);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -431,4 +470,5 @@ module.exports = {
   acceptFollowRequest,
   rejectFollowRequest,
   deleteAccount,
+  getSuggestions,
 };

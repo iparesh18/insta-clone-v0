@@ -19,6 +19,8 @@ export const userAPI = {
   deleteAccount: () => api.delete("/users/me"),
   searchUsers: (q, limit = 20) =>
     api.get(`/users/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getSuggestions: (limit = 8) =>
+    api.get(`/users/suggestions?limit=${limit}`),
   follow: (id) => api.post(`/users/${id}/follow`),
   unfollow: (id) => api.delete(`/users/${id}/follow`),
   getFollowers: (id, cursor) =>

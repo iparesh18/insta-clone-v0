@@ -15,11 +15,13 @@ const {
   acceptFollowRequest,
   rejectFollowRequest,
   deleteAccount,
+  getSuggestions,
 } = require("../controllers/user.controller");
 const { protect } = require("../middlewares/auth");
 const { uploadSingleWithCompression } = require("../middlewares/upload");
 
 router.get("/search", protect, searchUsers);
+router.get("/suggestions", protect, getSuggestions);
 router.get("/follow-requests", protect, getFollowRequests);
 router.post("/follow-requests/:id/accept", protect, acceptFollowRequest);
 router.post("/follow-requests/:id/reject", protect, rejectFollowRequest);

@@ -26,14 +26,14 @@ const globalSearch = async (req, res, next) => {
 
     // Parallel queries for performance
     const [users, posts, reels, allHashtags] = await Promise.all([
-      // 1️⃣ Search users by username or name
+      // 1️⃣ Search users by username or fullName
       User.find({
         $or: [
           { username: searchRegex },
-          { name: searchRegex },
+          { fullName: searchRegex },
         ],
       })
-        .select("_id username name profilePicture isVerified followers")
+        .select("_id username fullName profilePicture isVerified followers")
         .limit(5),
 
       // 2️⃣ Search posts by caption
@@ -41,7 +41,7 @@ const globalSearch = async (req, res, next) => {
         caption: searchRegex,
         isArchived: false,
       })
-        .select("_id caption image author likes createdAt")
+        .select("_id caption media author likeCount createdAt")
         .populate("author", "username profilePicture")
         .limit(5),
 
@@ -53,7 +53,7 @@ const globalSearch = async (req, res, next) => {
         ],
         isArchived: false,
       })
-        .select("_id caption thumbnail tags author likeCount createdAt")
+        .select("_id caption video tags author likeCount createdAt")
         .populate("author", "username profilePicture")
         .limit(5),
 

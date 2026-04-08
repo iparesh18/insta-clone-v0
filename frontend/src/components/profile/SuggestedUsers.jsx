@@ -1,7 +1,6 @@
 /**
- * components/profile/SuggestedUsers.jsx - FIXED v2
- * Uses a proper search with empty catch instead of hardcoded "a".
- * In production: add GET /api/v1/users/suggestions endpoint.
+ * components/profile/SuggestedUsers.jsx
+ * Shows suggested users to follow using dedicated suggestions endpoint
  */
 
 import React, { useEffect, useState } from "react";
@@ -14,20 +13,25 @@ export default function SuggestedUsers() {
   const { user: currentUser } = useAuthStore();
   const [suggestions, setSuggestions] = useState([]);
   const [followed, setFollowed] = useState(new Set());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch users not yet followed — search common letters to seed suggestions
-    // TODO: replace with a dedicated /users/suggestions endpoint
-    const seeds = ["a", "e", "i"];
-    const seed = seeds[Math.floor(Math.random() * seeds.length)];
-    userAPI.searchUsers(seed)
-      .then(({ data }) => {
-        const filtered = (data.data.users || [])
-          .filter(u => u._id !== currentUser?._id)
-          .slice(0, 5);
-        setSuggestions(filtered);
-      })
-      .catch(() => {});
+    if (!currentUser?._id) return;
+
+    const fetchSuggestions = async () => {
+      setLoading(true);
+      try {
+        const { data } = await userAPI.getSuggestions(8);
+        setSuggestions(data.data.users || []);
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+        setSuggestions([]); // Fail silently
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSuggestions();
   }, [currentUser?._id]);
 
   const handleFollow = async (id) => {
@@ -57,7 +61,7 @@ export default function SuggestedUsers() {
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm font-semibold text-ig-gray">Suggested for you</span>
             <button className="text-xs font-semibold text-ig-dark hover:text-ig-gray">
-              See all
+              instagram
             </button>
           </div>
           <div className="space-y-3">

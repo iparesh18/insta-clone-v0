@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { searchAPI } from "@/api/services";
-import PostCard from "@/components/post/PostCard";
+import ReelModal from "@/components/reel/ReelModal";
+import PostDetailModal from "@/components/post/PostDetailModal";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,8 @@ export default function SearchPage() {
   const [activeTab, setActiveTab] = useState("all"); // all, users, posts, reels, tags
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedReel, setSelectedReel] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   useEffect(() => {
     if (!query) return;
@@ -24,7 +27,7 @@ export default function SearchPage() {
       setLoading(true);
       try {
         const res = await searchAPI.global(query);
-        setResults(res.data);
+        setResults(res.data.data);
       } catch (err) {
         console.error("Search error:", err);
       } finally {
@@ -94,7 +97,18 @@ export default function SearchPage() {
       return (
         <div className="grid grid-cols-3 gap-4">
           {posts.map((post) => (
-            <PostCard key={post._id} post={post} />
+            <button
+              key={post._id}
+              onClick={() => setSelectedPostId(post._id)}
+              className="relative group overflow-hidden rounded-lg"
+            >
+              <img
+                src={post.media?.[0]?.url}
+                alt="post"
+                className="w-full aspect-square object-cover"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition" />
+            </button>
           ))}
         </div>
       );
@@ -110,11 +124,11 @@ export default function SearchPage() {
           {reels.map((reel) => (
             <button
               key={reel._id}
-              onClick={() => navigate(`/reel/${reel._id}`)}
+              onClick={() => setSelectedReel(reel)}
               className="relative group overflow-hidden rounded-lg"
             >
               <img
-                src={reel.thumbnail}
+                src={reel.video?.thumbnailUrl}
                 alt="reel"
                 className="w-full aspect-video object-cover"
               />
@@ -176,6 +190,22 @@ export default function SearchPage() {
 
       {/* Content */}
       {renderContent()}
+
+      {/* Reel Modal */}
+      {selectedReel && (
+        <ReelModal
+          reel={selectedReel}
+          onClose={() => setSelectedReel(null)}
+        />
+      )}
+
+      {/* Post Modal */}
+      {selectedPostId && (
+        <PostDetailModal
+          postId={selectedPostId}
+          onClose={() => setSelectedPostId(null)}
+        />
+      )}
     </div>
   );
 }

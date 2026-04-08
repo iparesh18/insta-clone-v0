@@ -7,6 +7,8 @@ import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { searchAPI } from "@/api/services";
 import { Search, X } from "lucide-react";
+import ReelModal from "@/components/reel/ReelModal";
+import PostDetailModal from "@/components/post/PostDetailModal";
 
 export default function SearchBar() {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ export default function SearchBar() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [selectedReel, setSelectedReel] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function SearchBar() {
         timeout = setTimeout(async () => {
           try {
             const res = await searchAPI.global(q);
-            setResults(res.data);
+            setResults(res.data.data);
           } catch (err) {
             console.error("Search error:", err);
           } finally {
@@ -82,12 +86,12 @@ export default function SearchBar() {
   };
 
   const handleClickPost = (postId) => {
-    navigate(`/posts/${postId}`);
+    setSelectedPostId(postId);
     handleClear();
   };
 
-  const handleClickReel = (reelId) => {
-    navigate(`/reels/${reelId}`);
+  const handleClickReel = (reel) => {
+    setSelectedReel(reel);
     handleClear();
   };
 
@@ -162,7 +166,7 @@ export default function SearchBar() {
                       className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
                     >
                       <img
-                        src={post.image?.[0]}
+                        src={post.media?.[0]?.url}
                         alt="post"
                         className="w-10 h-10 rounded"
                       />
@@ -186,11 +190,11 @@ export default function SearchBar() {
                   {results.reels.map((reel) => (
                     <button
                       key={reel._id}
-                      onClick={() => handleClickReel(reel._id)}
+                      onClick={() => handleClickReel(reel)}
                       className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
                     >
                       <img
-                        src={reel.thumbnail}
+                        src={reel.video?.thumbnailUrl}
                         alt="reel"
                         className="w-10 h-10 rounded"
                       />
@@ -271,6 +275,22 @@ export default function SearchBar() {
         <div
           className="fixed inset-0 z-40"
           onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Reel Modal */}
+      {selectedReel && (
+        <ReelModal
+          reel={selectedReel}
+          onClose={() => setSelectedReel(null)}
+        />
+      )}
+
+      {/* Post Modal */}
+      {selectedPostId && (
+        <PostDetailModal
+          postId={selectedPostId}
+          onClose={() => setSelectedPostId(null)}
         />
       )}
     </div>
