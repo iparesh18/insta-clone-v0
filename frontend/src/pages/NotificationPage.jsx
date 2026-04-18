@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Heart, MessageCircle, UserPlus, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useNotificationStore from "@/store/notificationStore";
+import useSocketStore from "@/store/socketStore";
 import Avatar from "@/components/ui/Avatar";
 import PostDetailModal from "@/components/post/PostDetailModal";
 import ReelModal from "@/components/reel/ReelModal";
@@ -11,10 +12,12 @@ import { reelAPI } from "@/api/services";
 /**
  * pages/NotificationPage.jsx
  * Displays all app notifications (likes, comments, follows, posts)
+ * REAL-TIME: New notifications appear instantly via Socket.io without page reload ✅
  */
 
 export default function NotificationPage() {
   const navigate = useNavigate();
+  const { socket } = useSocketStore();
   const {
     appNotifications,
     appUnreadCount,
@@ -23,16 +26,36 @@ export default function NotificationPage() {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteAppNotification,
+    addAppNotification,
   } = useNotificationStore();
 
   const [pagination, setPagination] = useState(null);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedReel, setSelectedReel] = useState(null);
 
+  // ─── Initial load: Fetch notifications from server ──────────────────
   useEffect(() => {
-    // Fetch notifications on mount
     fetchAppNotifications().then((pag) => setPagination(pag));
   }, [fetchAppNotifications]);
+
+  // ─── REAL-TIME: Listen for new notifications via Socket.io ──────────
+  // 🔔 When someone likes/comments on your post/reel, it arrives here INSTANTLY
+  // NO page reload needed - notification appears in list immediately
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (notification) => {
+      console.log("🔔 [REAL-TIME] New notification arrived on NotificationPage:", notification);
+      // Prepend new notification to the top of the list
+      addAppNotification(notification);
+    };
+
+    socket.on("new_notification", handleNewNotification);
+
+    return () => {
+      socket.off("new_notification", handleNewNotification);
+    };
+  }, [socket, addAppNotification]);
 
   const getNotificationIcon = (type) => {
     switch (type) {

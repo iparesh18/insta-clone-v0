@@ -123,12 +123,27 @@ const getFeed = async (req, res, next) => {
       .limit(parseInt(limit))
       .populate("author", "username profilePicture isVerified");
 
+    // ─── Get like status for current user ──────────────────────────
+    const postIds = posts.map((p) => p._id);
+    const likes = await Like.find({
+      user: req.user._id,
+      targetId: { $in: postIds },
+      targetType: "Post",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
+    // ─── Attach isLiked to each post ──────────────────────────────
+    const enrichedPosts = posts.map((post) => ({
+      ...post.toObject(),
+      isLiked: likedSet.has(String(post._id)),
+    }));
+
     const hasMore = posts.length === parseInt(limit);
     const nextCursor = hasMore ? posts[posts.length - 1]._id : null;
 
     const payload = {
       success: true,
-      data: { posts },
+      data: { posts: enrichedPosts },
       pagination: { hasMore, nextCursor },
     };
 
@@ -308,11 +323,28 @@ const addComment = async (req, res, next) => {
     const post = await Post.findById(req.params.id).select("_id author");
     if (!post) return sendError(res, "Post not found", 404);
 
+    const trimmedText = text.trim();
+
+    // ─── Parse mentions from comment text ──────────────────────────
+    const { parseMentions } = require("../utils/mentionParser");
+    const mentionedUsernames = parseMentions(trimmedText);
+
+    let mentionedUserIds = [];
+    if (mentionedUsernames.length > 0) {
+      const mentionedUsers = await User.find(
+        { username: { $in: mentionedUsernames } },
+        "_id"
+      );
+      mentionedUserIds = mentionedUsers.map((u) => u._id);
+    }
+
+    // ─── Create comment with mentions ─────────────────────────────
     const comment = await Comment.create({
       author: req.user._id,
       targetId: post._id,
       targetType: "Post",
-      text: text.trim(),
+      text: trimmedText,
+      mentions: mentionedUserIds,
     });
 
     await Post.findByIdAndUpdate(post._id, { $inc: { commentCount: 1 } });
@@ -326,6 +358,27 @@ const addComment = async (req, res, next) => {
         post._id,
         "Post"
       );
+    }
+
+    // ─── Notify mentioned users ──────────────────────────────────
+    if (mentionedUserIds.length > 0) {
+      for (const mentionedUserId of mentionedUserIds) {
+        // Skip notification if mentioned user is the post author (they already got 'comment' notification)
+        // and skip if mentioned user is the commenter (no self-mention)
+        if (
+          String(mentionedUserId) !== String(req.user._id) &&
+          String(mentionedUserId) !== String(post.author)
+        ) {
+          await createNotification(
+            mentionedUserId,
+            req.user._id,
+            "mention",
+            post._id,
+            "Post",
+            comment._id
+          );
+        }
+      }
     }
 
     const populated = await comment.populate("author", "username profilePicture isVerified");
@@ -405,10 +458,25 @@ const getSavedPosts = async (req, res, next) => {
       .populate("author", "username profilePicture isVerified")
       .select("author media likeCount commentCount createdAt caption location");
 
+    // ─── Get like status for current user ──────────────────────────
+    const postIds = posts.map((p) => p._id);
+    const likes = await Like.find({
+      user: req.user._id,
+      targetId: { $in: postIds },
+      targetType: "Post",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
+    // ─── Attach isLiked to each post ──────────────────────────────
+    const enrichedPosts = posts.map((post) => ({
+      ...post.toObject(),
+      isLiked: likedSet.has(String(post._id)),
+    }));
+
     const hasMore = posts.length === parseInt(limit);
     const nextCursor = hasMore ? posts[posts.length - 1]._id : null;
 
-    return sendSuccess(res, { posts, pagination: { hasMore, nextCursor } });
+    return sendSuccess(res, { posts: enrichedPosts, pagination: { hasMore, nextCursor } });
   } catch (err) {
     next(err);
   }
@@ -439,12 +507,27 @@ const getUserPosts = async (req, res, next) => {
     const posts = await Post.find(query)
       .sort({ _id: -1 })
       .limit(parseInt(limit))
-      .select("media likeCount commentCount createdAt");
+      .select("media likeCount commentCount createdAt author");
+
+    // ─── Get like status for current user ──────────────────────────
+    const postIds = posts.map((p) => p._id);
+    const likes = await Like.find({
+      user: req.user._id,
+      targetId: { $in: postIds },
+      targetType: "Post",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
+    // ─── Attach isLiked to each post ──────────────────────────────
+    const enrichedPosts = posts.map((post) => ({
+      ...post.toObject(),
+      isLiked: likedSet.has(String(post._id)),
+    }));
 
     const hasMore = posts.length === parseInt(limit);
     const nextCursor = hasMore ? posts[posts.length - 1]._id : null;
 
-    return sendSuccess(res, { posts, pagination: { hasMore, nextCursor } });
+    return sendSuccess(res, { posts: enrichedPosts, pagination: { hasMore, nextCursor } });
   } catch (err) {
     next(err);
   }

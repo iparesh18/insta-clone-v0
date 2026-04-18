@@ -26,6 +26,7 @@ const chatRoutes = require("./routes/chat.routes");
 const shareRoutes = require("./routes/share.routes");
 const searchRoutes = require("./routes/search.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const verificationRoutes = require("./routes/verification.routes");
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.get("/health", (req, res) =>
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/verify", verificationRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/reels", reelRoutes);

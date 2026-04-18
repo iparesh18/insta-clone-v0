@@ -12,9 +12,11 @@ import useSocketStore from "@/store/socketStore";
 
 import MainLayout from "@/components/layout/MainLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
+import PushNotificationManager from "@/components/PushNotificationManager";
 
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import HomePage from "@/pages/HomePage";
 import ExplorePage from "@/pages/ExplorePage";
 import ReelsPage from "@/pages/ReelsPage";
@@ -63,6 +65,7 @@ export default function App() {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <PushNotificationManager />
       <Toaster
         position="top-center"
         toastOptions={{
@@ -74,6 +77,8 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
         </Route>
 
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>

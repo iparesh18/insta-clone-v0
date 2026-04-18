@@ -66,6 +66,7 @@ const createStory = async (req, res, next) => {
 /**
  * Returns stories from accounts the user follows, grouped by author.
  * Sorted so users with unseen stories appear first.
+ * For own stories, includes viewer count and viewer list.
  */
 const getStoryFeed = async (req, res, next) => {
   try {
@@ -79,7 +80,8 @@ const getStoryFeed = async (req, res, next) => {
 
     const stories = await Story.find({ author: { $in: followingIds } })
       .sort({ createdAt: -1 })
-      .populate("author", "username profilePicture");
+      .populate("author", "username profilePicture")
+      .populate("viewers", "username profilePicture"); // Populate viewer details
 
     // Group stories by author
     const grouped = stories.reduce((acc, story) => {
@@ -91,9 +93,23 @@ const getStoryFeed = async (req, res, next) => {
           hasUnseen: false,
         };
       }
-      const isSeen = story.viewers.includes(req.user._id);
+      const isSeen = story.viewers.some(v => String(v._id) === String(req.user._id));
       if (!isSeen) acc[authorId].hasUnseen = true;
-      acc[authorId].stories.push({ ...story.toObject(), isSeen });
+      
+      // Build story object with viewer info
+      const storyObj = { ...story.toObject(), isSeen };
+      
+      // If it's the user's own story, include viewer count and list
+      if (String(story.author._id) === String(req.user._id)) {
+        storyObj.viewerCount = story.viewers.length;
+        storyObj.viewers = story.viewers.map(v => ({
+          _id: v._id,
+          username: v.username,
+          profilePicture: v.profilePicture,
+        }));
+      }
+      
+      acc[authorId].stories.push(storyObj);
       return acc;
     }, {});
 

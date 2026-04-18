@@ -1,10 +1,10 @@
 /**
  * hooks/useNotificationListener.js
- * Socket.io listener for messages, typing, online status
- * Runs globally to track all real-time events
+ * Socket.io listener with polling fallback for real-time notifications
+ * NO page reload needed - all notifications arrive in real-time
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import useSocketStore from "@/store/socketStore";
 import useNotificationStore from "@/store/notificationStore";
 import useAuthStore from "@/store/authStore";
@@ -18,6 +18,42 @@ export function useNotificationListener() {
   const setUserOnlineStatus = useNotificationStore((s) => s.setUserOnlineStatus);
   const addAppNotification = useNotificationStore((s) => s.addAppNotification);
   const showNotificationToast = useNotificationStore((s) => s.showNotificationToast);
+  const fetchAppNotifications = useNotificationStore((s) => s.fetchAppNotifications);
+  
+  const pollIntervalRef = useRef(null);
+  const lastNotificationIdRef = useRef(null);
+
+  // ─── Polling Fallback (every 10 seconds) ──────────────────────────────
+  // If Socket.io fails, this ensures notifications still arrive within 10 seconds
+  useEffect(() => {
+    if (!me) return;
+
+    const startPolling = () => {
+      if (pollIntervalRef.current) return;
+
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const pagination = await fetchAppNotifications(1, 0);
+          // Polling successful - notifications are being fetched
+          console.log("📡 [POLLING] Notifications synced");
+        } catch (err) {
+          console.warn("⚠️ [POLLING] Fallback polling failed:", err.message);
+        }
+      }, 10000); // Poll every 10 seconds
+    };
+
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+
+    // Start polling as fallback
+    startPolling();
+
+    return stopPolling;
+  }, [me, fetchAppNotifications]);
 
   useEffect(() => {
     if (!socket || !me) return;
@@ -57,8 +93,17 @@ export function useNotificationListener() {
     };
 
     // ─── App Notifications (likes, comments, follows) ──────────────────
+    // REAL-TIME: Triggered instantly when someone likes/comments on your post/reel
     const handleNewNotification = (notification) => {
-      console.log("🔔 New notification received:", notification);
+      console.log("🔔 [SOCKET] New notification received INSTANTLY:", notification);
+      
+      // Prevent duplicate notifications
+      if (lastNotificationIdRef.current === notification._id) {
+        console.log("⏭️  [DEDUP] Skipping duplicate notification");
+        return;
+      }
+      
+      lastNotificationIdRef.current = notification._id;
       addAppNotification(notification);
       showNotificationToast(notification.actor, notification.type);
     };
@@ -69,12 +114,15 @@ export function useNotificationListener() {
     socket.on("user:offline", handleUserOffline);
     socket.on("new_notification", handleNewNotification);
 
+    console.log("✅ [SOCKET] Notification listeners attached");
+
     return () => {
       socket.off("chat:receive", handleNewMessage);
       socket.off("chat:typing", handleUserTyping);
       socket.off("user:online", handleUserOnline);
       socket.off("user:offline", handleUserOffline);
       socket.off("new_notification", handleNewNotification);
+      console.log("❌ [SOCKET] Notification listeners removed");
     };
   }, [socket, me, addUnreadMessage, showNewMessage, setUserTyping, setUserOnlineStatus, addAppNotification, showNotificationToast]);
 }

@@ -2,15 +2,17 @@
  * controllers/auth.controller.js
  *
  * Handles direct auth only:
- *  POST /register — Creates user + issues auth cookie
+ *  POST /register — Creates user + sends email verification
  *  POST /login    — Issues auth cookie
  *  POST /logout   — Clears auth cookie
  *  GET  /me       — Returns authenticated user
  */
 
+const crypto = require("crypto");
 const User = require("../models/User");
 const { signAccessToken } = require("../utils/jwt");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
+const { sendVerificationEmail } = require("../services/emailService");
 
 // ─── Cookie Options ──────────────────────────────────────────────────────────
 const ACCESS_COOKIE_OPTIONS = {
@@ -31,18 +33,37 @@ const register = async (req, res, next) => {
       return sendError(res, `${field} is already taken`, 409);
     }
 
+    // Generate email verification token
+    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const user = await User.create({
       username,
       email,
       password,
       fullName,
-      isVerified: true,
+      isVerified: false, // User not verified until email is confirmed
+      emailVerificationToken: crypto
+        .createHash("sha256")
+        .update(emailVerificationToken)
+        .digest("hex"),
+      emailVerificationExpires,
     });
 
-    const accessToken = issueToken(user);
-    res.cookie("accessToken", accessToken, ACCESS_COOKIE_OPTIONS);
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, user.username, emailVerificationToken);
+    } catch (emailErr) {
+      // If email fails, still inform user but they may not receive email
+      console.error("Email send failed:", emailErr);
+    }
 
-    return sendSuccess(res, { user: user.toPublicJSON() }, "Account created", 201);
+    return sendSuccess(
+      res,
+      { email: user.email, username: user.username },
+      "Account created! Please check your email to verify your account.",
+      201
+    );
   } catch (err) {
     next(err);
   }
@@ -51,6 +72,7 @@ const register = async (req, res, next) => {
 // ─── Login ────────────────────────────────────────────────────────────────────
 /**
  * Authenticates the user with email + password. Returns auth cookie.
+ * User must have verified their email first.
  */
 const login = async (req, res, next) => {
   try {
@@ -58,6 +80,11 @@ const login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) return sendError(res, "Invalid credentials", 401);
+
+    // Check if email is verified
+    if (!user.emailVerifiedAt) {
+      return sendError(res, "Please verify your email before logging in", 403);
+    }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return sendError(res, "Invalid credentials", 401);

@@ -11,6 +11,7 @@ const commentSchema = new mongoose.Schema(
     targetType: { type: String, enum: ["Post", "Reel"], required: true },
     text: { type: String, required: true, maxlength: 500 },
     parentComment: { type: mongoose.Schema.Types.ObjectId, ref: "Comment", default: null },
+    mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // array of mentioned users
     likeCount: { type: Number, default: 0 },
   },
   { timestamps: true }

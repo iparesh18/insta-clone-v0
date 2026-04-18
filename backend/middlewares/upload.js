@@ -71,8 +71,8 @@ const uploadWithCompression = (allowedTypes, maxSizeMB = 100) => [
   compressImages,
 ];
 
-const uploadSingleWithCompression = (allowedTypes, maxSizeMB = 5) => [
-  createDiskUpload(allowedTypes, maxSizeMB).single("file"),
+const uploadSingleWithCompression = (allowedTypes, maxSizeMB = 5, fieldName = "file") => [
+  createDiskUpload(allowedTypes, maxSizeMB).single(fieldName),
   compressImages,
 ];
 

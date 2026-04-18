@@ -216,4 +216,35 @@ const deleteMessage = async (req, res, next) => {
   }
 };
 
-module.exports = { getConversations, getMessages, sendMessage, markAsRead, deleteMessage, getRoomId };
+// ─── Delete Conversation ──────────────────────────────────────────────────────
+/**
+ * Delete entire conversation with a user (deletes all messages both ways)
+ */
+const deleteConversation = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user._id;
+
+    // Check if the user exists
+    const otherUser = await User.findById(userId);
+    if (!otherUser) return sendError(res, "User not found", 404);
+
+    // Delete all messages where current user is sender OR receiver
+    const result = await Message.deleteMany({
+      $or: [
+        { sender: currentUserId, receiver: userId },
+        { sender: userId, receiver: currentUserId },
+      ],
+    });
+
+    return sendSuccess(
+      res,
+      { deletedCount: result.deletedCount },
+      "Conversation deleted"
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getConversations, getMessages, sendMessage, markAsRead, deleteMessage, deleteConversation, getRoomId };

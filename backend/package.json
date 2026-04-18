@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "instagram-clone-backend",
   "version": "1.0.0",
   "description": "Production-grade Instagram Clone Backend",
@@ -25,9 +26,11 @@
     "mongoose": "^8.4.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.5",
     "sharp": "^0.33.1",
     "socket.io": "^4.7.5",
     "uuid": "^10.0.0",
+    "web-push": "^3.6.7",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0"
   },

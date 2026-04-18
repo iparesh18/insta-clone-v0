@@ -4,9 +4,9 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowLeft, Check, CheckCheck, Circle, Trash2 } from "lucide-react";
+import { Send, ArrowLeft, Check, CheckCheck, Circle, Trash2, MoreVertical } from "lucide-react";
 import { chatAPI } from "@/api/services";
 import useAuthStore from "@/store/authStore";
 import useSocketStore from "@/store/socketStore";
@@ -21,6 +21,7 @@ export default function ChatPage() {
   const { userId } = useParams();
   const { user: me } = useAuthStore();
   const { socket } = useSocketStore();
+  const navigate = useNavigate();
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   const setChatActivity = useNotificationStore((s) => s.setChatActivity);
   const clearChatActivity = useNotificationStore((s) => s.clearChatActivity);
@@ -39,6 +40,9 @@ export default function ChatPage() {
   const [showReelModal, setShowReelModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedReel, setSelectedReel] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const bottomRef = useRef(null);
   const typingTimer = useRef(null);
 
@@ -235,6 +239,21 @@ export default function ChatPage() {
     }
   };
 
+  const handleDeleteConversation = async () => {
+    try {
+      setDeleting(true);
+      await chatAPI.deleteConversation(userId);
+      toast.success("Conversation deleted");
+      setShowDeleteConfirm(false);
+      setShowMenu(false);
+      navigate("/chat");
+    } catch (err) {
+      toast.error("Failed to delete conversation");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // No conversation selected — show list
   if (!userId) {
     return (
@@ -280,59 +299,88 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen max-w-3xl mx-auto border-x border-ig-border">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-ig-border">
-        <Link to="/chat" className="md:hidden">
-          <ArrowLeft size={20} />
-        </Link>
-        {otherUser && (
-          <>
-            <Avatar src={otherUser.profilePicture?.url} alt={otherUser.username} size="sm" />
-            <div className="flex-1">
-              <p className="font-semibold text-sm">{otherUser.username}</p>
-              {isTyping ? (
-                <motion.p 
-                  className="text-xs text-ig-gray flex items-center gap-1"
-                  initial={{ opacity: 0.6 }}
-                  animate={{ opacity: 1 }}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-ig-border justify-between">
+        <div className="flex items-center gap-3">
+          <Link to="/chat" className="md:hidden">
+            <ArrowLeft size={20} />
+          </Link>
+          {otherUser && (
+            <>
+              <Avatar src={otherUser.profilePicture?.url} alt={otherUser.username} size="sm" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm">{otherUser.username}</p>
+                {isTyping ? (
+                  <motion.p 
+                    className="text-xs text-ig-gray flex items-center gap-1"
+                    initial={{ opacity: 0.6 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    typing
+                    <span className="flex gap-0.5">
+                      <motion.span
+                        animate={{ opacity: [0.4, 1] }}
+                        transition={{ duration: 0.6, repeat: Infinity }}
+                        className="w-1 h-1 bg-ig-gray rounded-full"
+                      />
+                      <motion.span
+                        animate={{ opacity: [0.4, 1] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                        className="w-1 h-1 bg-ig-gray rounded-full"
+                      />
+                      <motion.span
+                        animate={{ opacity: [0.4, 1] }}
+                        transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                        className="w-1 h-1 bg-ig-gray rounded-full"
+                      />
+                    </span>
+                  </motion.p>
+                ) : (
+                  <p className="text-xs text-ig-gray flex items-center gap-1">
+                    {userOnline ? (
+                      <>
+                        <Circle size={6} className="fill-green-500 text-green-500" />
+                        Active now
+                      </>
+                    ) : userLastSeen ? (
+                      <>
+                        Active {formatDistanceToNow(new Date(userLastSeen))} ago
+                      </>
+                    ) : (
+                      "Offline"
+                    )}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Delete Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 hover:bg-ig-hover rounded-full transition"
+          >
+            <MoreVertical size={20} />
+          </button>
+          <AnimatePresence>
+            {showMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-ig-border z-50"
+              >
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-3 px-4 py-3 w-full hover:bg-ig-hover text-sm text-red-500 transition"
                 >
-                  typing
-                  <span className="flex gap-0.5">
-                    <motion.span
-                      animate={{ opacity: [0.4, 1] }}
-                      transition={{ duration: 0.6, repeat: Infinity }}
-                      className="w-1 h-1 bg-ig-gray rounded-full"
-                    />
-                    <motion.span
-                      animate={{ opacity: [0.4, 1] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                      className="w-1 h-1 bg-ig-gray rounded-full"
-                    />
-                    <motion.span
-                      animate={{ opacity: [0.4, 1] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                      className="w-1 h-1 bg-ig-gray rounded-full"
-                    />
-                  </span>
-                </motion.p>
-              ) : (
-                <p className="text-xs text-ig-gray flex items-center gap-1">
-                  {userOnline ? (
-                    <>
-                      <Circle size={6} className="fill-green-500 text-green-500" />
-                      Active now
-                    </>
-                  ) : userLastSeen ? (
-                    <>
-                      Active {formatDistanceToNow(new Date(userLastSeen))} ago
-                    </>
-                  ) : (
-                    "Offline"
-                  )}
-                </p>
-              )}
-            </div>
-          </>
-        )}
+                  <Trash2 size={18} /> Delete conversation
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Messages */}
@@ -515,6 +563,59 @@ export default function ChatPage() {
       {showReelModal && selectedReel && (
         <ReelModal reel={selectedReel} onClose={() => setShowReelModal(false)} />
       )}
+
+      {/* Delete Conversation Confirmation */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-lg shadow-xl max-w-sm mx-4 overflow-hidden"
+            >
+              <div className="p-6 border-b border-ig-border">
+                <h3 className="text-lg font-bold text-ig-dark">Delete conversation?</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-ig-gray mb-6">
+                  This conversation with <strong>{otherUser?.username}</strong> will be permanently deleted. This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-3 p-6 border-t border-ig-border">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 rounded-lg border border-ig-border hover:bg-ig-hover transition disabled:opacity-50 font-semibold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConversation}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                  {deleting && (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  )}
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

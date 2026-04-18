@@ -458,6 +458,71 @@ const getSuggestions = async (req, res, next) => {
   }
 };
 
+// ─── Push Notifications ───────────────────────────────────────────────────────
+/**
+ * Register push notification subscription
+ * Called when user enables push notifications on their device
+ */
+const registerPushSubscription = async (req, res, next) => {
+  try {
+    const { subscription } = req.body;
+
+    if (!subscription) {
+      return sendError(res, "Subscription object is required", 400);
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    // Store the subscription endpoint (can support multiple devices)
+    // We store based on endpoint since each device has a unique endpoint
+    const subscriptionString = JSON.stringify(subscription);
+
+    // Avoid duplicates
+    if (!user.pushTokens.includes(subscriptionString)) {
+      user.pushTokens.push(subscriptionString);
+      await user.save();
+      console.log(`✓ Push subscription registered for user ${req.user._id}`);
+    }
+
+    return sendSuccess(res, { message: "Push subscription registered" }, "Subscribed to notifications");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Unregister push notification subscription
+ * Called when user disables push notifications on their device
+ */
+const unregisterPushSubscription = async (req, res, next) => {
+  try {
+    const { subscription } = req.body;
+
+    if (!subscription) {
+      return sendError(res, "Subscription object is required", 400);
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const subscriptionString = JSON.stringify(subscription);
+
+    // Remove the subscription
+    user.pushTokens = user.pushTokens.filter((token) => token !== subscriptionString);
+    await user.save();
+    console.log(`✓ Push subscription unregistered for user ${req.user._id}`);
+
+    return sendSuccess(res, { message: "Push subscription removed" }, "Unsubscribed from notifications");
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -471,4 +536,6 @@ module.exports = {
   rejectFollowRequest,
   deleteAccount,
   getSuggestions,
+  registerPushSubscription,
+  unregisterPushSubscription,
 };

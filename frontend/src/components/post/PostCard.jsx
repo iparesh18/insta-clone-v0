@@ -2,7 +2,7 @@
  * components/post/PostCard.jsx
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Trash2 } from "lucide-react";
@@ -26,6 +26,14 @@ export default function PostCard({ post, onDelete }) {
   const [currentMedia, setCurrentMedia] = useState(0);
   const [showPostDetail, setShowPostDetail] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // ─── Sync state with post prop changes ──────────────────────────
+  // When component receives new post data (e.g., after reload or navigation),
+  // update the liked state to match the backend data
+  useEffect(() => {
+    setLiked(!!post.isLiked);
+    setLikeCount(post.likeCount || 0);
+  }, [post.isLiked, post.likeCount, post._id]);
   
   const saved = savedPosts.has(post._id);
   

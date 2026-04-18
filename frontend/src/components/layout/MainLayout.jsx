@@ -16,6 +16,7 @@ import CreateReelModal from "@/components/reel/CreateReelModal";
 import SettingsModal from "@/components/ui/SettingsModal";
 import Avatar from "@/components/ui/Avatar";
 import ToastContainer from "@/components/ui/Toast";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import { useNotificationListener } from "@/hooks/useNotificationListener";
 
 const NAV_ITEMS = [
@@ -173,6 +174,7 @@ export default function MainLayout() {
       </nav>
 
       <main className="flex-1 ml-16 xl:ml-64">
+        <Breadcrumbs />
         <Outlet />
       </main>
 

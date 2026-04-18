@@ -12,6 +12,11 @@ export const authAPI = {
   getMe: () => api.get("/auth/me"),
 };
 
+export const verificationAPI = {
+  verifyEmail: (token) => api.post(`/verify/verify-email/${token}`),
+  resendVerificationEmail: (email) => api.post("/verify/resend-verification", { email }),
+};
+
 export const userAPI = {
   getProfile: (username) => api.get(`/users/${username}`),
   updateProfile: (formData) =>
@@ -93,7 +98,8 @@ export const chatAPI = {
     api.get(`/chat/${userId}${cursor ? `?cursor=${cursor}` : ""}`),
   sendMessage: (userId, data) => api.post(`/chat/${userId}`, data),
   markAsRead: (userId) => api.patch(`/chat/${userId}/read`),
-  deleteMessage: (messageId) => api.delete(`/chat/${messageId}`),
+  deleteMessage: (messageId) => api.delete(`/chat/message/${messageId}`),
+  deleteConversation: (userId) => api.delete(`/chat/${userId}`),
 };
 
 export const shareAPI = {

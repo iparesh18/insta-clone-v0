@@ -6,6 +6,7 @@
 const Share = require("../models/Share");
 const Post = require("../models/Post");
 const Reel = require("../models/Reel");
+const Like = require("../models/Like");
 const Follow = require("../models/Follow");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
 
@@ -190,9 +191,19 @@ const getSharedPosts = async (req, res, next) => {
 
     const nextCursor = hasMore ? shares[shares.length - 1]?._id : null;
 
+    // ─── Get like status for current user ──────────────────────────
+    const postIds = shares.map((s) => s.contentId._id);
+    const likes = await Like.find({
+      user: userId,
+      targetId: { $in: postIds },
+      targetType: "Post",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
     // Transform to include share metadata with post data
     const postsWithShareInfo = shares.map((share) => ({
       ...share.contentId.toObject(),
+      isLiked: likedSet.has(String(share.contentId._id)),
       sharedBy: share.sharedBy,
       sharedAt: share.createdAt,
       shareMessage: share.message,
@@ -241,8 +252,18 @@ const getSharedReels = async (req, res, next) => {
 
     const nextCursor = hasMore ? shares[shares.length - 1]?._id : null;
 
+    // ─── Get like status for current user ──────────────────────────
+    const reelIds = shares.map((s) => s.contentId._id);
+    const likes = await Like.find({
+      user: userId,
+      targetId: { $in: reelIds },
+      targetType: "Reel",
+    }).select("targetId");
+    const likedSet = new Set(likes.map((l) => String(l.targetId)));
+
     const reelsWithShareInfo = shares.map((share) => ({
       ...share.contentId.toObject(),
+      isLiked: likedSet.has(String(share.contentId._id)),
       sharedBy: share.sharedBy,
       sharedAt: share.createdAt,
       shareMessage: share.message,

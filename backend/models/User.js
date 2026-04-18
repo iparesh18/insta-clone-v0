@@ -74,6 +74,14 @@ const userSchema = new mongoose.Schema(
 
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
+
+    // Email verification
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
+    emailVerifiedAt: { type: Date, default: null },
+
+    // Push notifications
+    pushTokens: [{ type: String }], // array of device push tokens for web push
   },
   {
     timestamps: true,
