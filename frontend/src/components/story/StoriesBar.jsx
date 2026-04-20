@@ -93,7 +93,7 @@ export default function StoriesBar({ storyGroups = [], onStoryCreated }) {
   return (
     <>
       {/* ── Story circles row ─────────────────────────────────────────── */}
-      <div className="bg-white border border-ig-border rounded-lg p-3 mb-4">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded-lg p-3 mb-4">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide">
           <div className="flex flex-col items-center gap-1 flex-shrink-0 w-16">
             <button
@@ -165,7 +165,7 @@ export default function StoriesBar({ storyGroups = [], onStoryCreated }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowViewers(!showViewers)}
-                    className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-full transition flex items-center gap-1"
+                    className="bg-white dark:bg-ig-dark/20 hover:bg-white dark:bg-ig-dark/30 text-white p-2 rounded-full transition flex items-center gap-1"
                     title="View viewers"
                   >
                     <Eye size={20} />
@@ -244,7 +244,7 @@ export default function StoriesBar({ storyGroups = [], onStoryCreated }) {
                         {currentStory.viewers.map((viewer) => (
                           <div
                             key={viewer._id}
-                            className="flex items-center gap-3 hover:bg-white/10 p-2 rounded-lg transition"
+                            className="flex items-center gap-3 hover:bg-white dark:bg-ig-dark/10 p-2 rounded-lg transition"
                           >
                             <Avatar
                               src={viewer.profilePicture?.url}
@@ -274,3 +274,6 @@ export default function StoriesBar({ storyGroups = [], onStoryCreated }) {
     </>
   );
 }
+
+
+

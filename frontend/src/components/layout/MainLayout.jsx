@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Compass, Film, MessageCircle, Bell, PlusSquare,
-  Menu, LogOut, Settings, Bookmark,
+  Menu, LogOut, Settings, Bookmark, BarChart3,
 } from "lucide-react";
 import useAuthStore from "@/store/authStore";
 import useNotificationStore from "@/store/notificationStore";
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/explore", icon: Compass, label: "Explore" },
   { to: "/reels", icon: Film, label: "Reels" },
+  { to: "/dashboard", icon: BarChart3, label: "Dashboard" },
   { to: "/chat", icon: MessageCircle, label: "Messages" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
 ];
@@ -74,9 +75,9 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-white dark:bg-ig-dark">
       <nav className="fixed left-0 top-0 h-full z-40 flex flex-col
-                      w-16 xl:w-64 border-r border-ig-border bg-white
+                      w-16 xl:w-64 border-r border-ig-border bg-white dark:bg-ig-dark
                       px-3 py-5 gap-1">
         <div className="px-3 mb-6 hidden xl:block"><IgWordmark /></div>
         <div className="px-3 mb-6 xl:hidden flex justify-center"><IgIcon /></div>
@@ -85,8 +86,8 @@ export default function MainLayout() {
           <NavLink key={to} to={to} end={to === "/"}
             className={({ isActive }) =>
               `flex items-center gap-4 px-3 py-3 rounded-xl cursor-pointer
-               transition-colors hover:bg-ig-hover relative
-               ${isActive ? "font-bold" : "font-normal"}`}>
+               transition-colors hover:bg-ig-hover relative text-ig-dark
+               ${isActive ? "font-bold bg-ig-hover" : "font-normal"}`}>
             {({ isActive }) => (
               <>
                 <div className="relative">
@@ -116,14 +117,14 @@ export default function MainLayout() {
 
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-4 px-3 py-3 rounded-xl
-                     hover:bg-ig-hover transition-colors">
+                     hover:bg-ig-hover transition-colors text-ig-dark">
           <PlusSquare size={26} strokeWidth={1.5} />
           <span className="hidden xl:block text-sm">Create</span>
         </button>
 
         <button
           onClick={() => setShowCreateReel(true)}
-          className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-ig-hover transition-colors"
+          className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-ig-hover transition-colors text-ig-dark"
         >
           <Film size={26} strokeWidth={1.5} />
           <span className="hidden xl:block text-sm">Create Reel</span>
@@ -134,7 +135,7 @@ export default function MainLayout() {
         <NavLink to={`/${user?.username}`}
           className={({ isActive }) =>
             `flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-ig-hover
-             transition-colors ${isActive ? "font-bold" : ""}`}>
+             transition-colors text-ig-dark ${isActive ? "font-bold bg-ig-hover" : ""}`}>
           <Avatar src={user?.profilePicture?.url} alt={user?.username} size="sm" />
           <span className="hidden xl:block text-sm">{user?.username}</span>
         </NavLink>
@@ -142,7 +143,7 @@ export default function MainLayout() {
         <div className="relative">
           <button onClick={() => setMenuOpen(v => !v)}
             className="flex items-center gap-4 px-3 py-3 rounded-xl
-                       hover:bg-ig-hover transition-colors w-full">
+                       hover:bg-ig-hover transition-colors w-full text-ig-dark">
             <Menu size={26} strokeWidth={1.5} />
             <span className="hidden xl:block text-sm">More</span>
           </button>
@@ -151,8 +152,8 @@ export default function MainLayout() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute bottom-14 left-0 w-56 bg-white rounded-2xl
-                           shadow-xl border border-ig-border overflow-hidden z-50">
+                className="absolute bottom-14 left-0 w-56 bg-white dark:bg-ig-dark rounded-2xl
+                           shadow-xl border border-ig-border overflow-hidden z-50 text-ig-dark">
                 <button onClick={() => { setShowSettings(true); setMenuOpen(false); }}
                   className="flex items-center gap-3 px-4 py-3 w-full hover:bg-ig-hover text-sm">
                   <Settings size={18} /> Settings
@@ -187,3 +188,6 @@ export default function MainLayout() {
     </div>
   );
 }
+
+
+

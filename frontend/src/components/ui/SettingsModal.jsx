@@ -5,10 +5,11 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LogOut, Trash2, AlertCircle } from "lucide-react";
+import { X, LogOut, Trash2, AlertCircle, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "@/store/authStore";
 import useNotificationStore from "@/store/notificationStore";
+import useThemeStore from "@/store/themeStore";
 import { userAPI } from "@/api/services";
 import Avatar from "./Avatar";
 
@@ -17,6 +18,8 @@ export default function SettingsModal({ isOpen, onClose }) {
   const navigate = useNavigate();
   const showError = useNotificationStore((s) => s.showError);
   const showSuccess = useNotificationStore((s) => s.showSuccess);
+  const isDarkMode = useThemeStore((s) => s.isDarkMode);
+  const setDarkMode = useThemeStore((s) => s.setDarkMode);
 
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -72,7 +75,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           >
             <motion.div
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              className="bg-white dark:bg-ig-dark rounded-2xl shadow-2xl max-w-md w-full overflow-hidden text-ig-dark"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-ig-border">
@@ -153,6 +156,39 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
+                {/* Appearance */}
+                <div className="p-6 border-b border-ig-border">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-ig-hover grid place-items-center">
+                        {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Dark Mode</p>
+                        <p className="text-xs text-ig-gray">
+                          Switch between light and dark appearance
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isDarkMode}
+                      onClick={() => setDarkMode(!isDarkMode)}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                        isDarkMode ? "bg-ig-blue" : "bg-ig-border"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white dark:bg-ig-dark transition-transform ${
+                          isDarkMode ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div className="p-6 space-y-3">
                   <button
@@ -197,7 +233,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         <button
                           onClick={() => setShowDeleteConfirm(false)}
                           disabled={loading}
-                          className="flex-1 px-3 py-2 bg-white border border-red-300
+                          className="flex-1 px-3 py-2 bg-white dark:bg-ig-dark border border-red-300
                                      text-red-600 font-semibold rounded-lg
                                      hover:bg-red-50 transition-colors disabled:opacity-50"
                         >
@@ -224,3 +260,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     </AnimatePresence>
   );
 }
+
+
+

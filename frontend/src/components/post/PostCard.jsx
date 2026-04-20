@@ -100,7 +100,7 @@ export default function PostCard({ post, onDelete }) {
   const isVideo = media?.type === "video";
 
   return (
-    <article className="border-b border-ig-border bg-white mb-1">
+    <article className="border-b border-ig-border bg-white dark:bg-ig-dark mb-1">
       <div className="flex items-center justify-between px-4 py-3">
         <Link to={`/${post.author.username}`} className="flex items-center gap-3">
           <Avatar src={post.author.profilePicture?.url} alt={post.author.username} size="sm" ring />
@@ -211,7 +211,7 @@ export default function PostCard({ post, onDelete }) {
 
       {likesOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setLikesOpen(false)}>
-          <div className="bg-white w-full max-w-md rounded-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-ig-dark w-full max-w-md rounded-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-4 py-3 border-b border-ig-border flex items-center justify-between">
               <h3 className="font-semibold">Likes</h3>
               <button className="text-sm text-ig-gray" onClick={() => setLikesOpen(false)}>Close</button>

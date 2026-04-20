@@ -12,12 +12,14 @@ const {
   deleteConversation,
 } = require("../controllers/chat.controller");
 const { protect } = require("../middlewares/auth");
+const { validate } = require("../middlewares/validate");
+const { chatValidators } = require("../validations/routeValidators");
 
 router.get("/conversations", protect, getConversations);
-router.get("/:userId", protect, getMessages);
-router.post("/:userId", protect, sendMessage);
-router.patch("/:userId/read", protect, markAsRead);
-router.delete("/message/:messageId", protect, deleteMessage);
-router.delete("/:userId", protect, deleteConversation);
+router.get("/:userId", protect, chatValidators.getMessages, validate, getMessages);
+router.post("/:userId", protect, chatValidators.sendMessage, validate, sendMessage);
+router.patch("/:userId/read", protect, chatValidators.userIdParam, validate, markAsRead);
+router.delete("/message/:messageId", protect, chatValidators.messageIdParam, validate, deleteMessage);
+router.delete("/:userId", protect, chatValidators.userIdParam, validate, deleteConversation);
 
 module.exports = router;

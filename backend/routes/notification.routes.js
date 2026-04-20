@@ -11,9 +11,11 @@ const {
   getUnreadCount,
 } = require("../controllers/notification.controller");
 const { protect } = require("../middlewares/auth");
+const { validate } = require("../middlewares/validate");
+const { notificationValidators } = require("../validations/routeValidators");
 
 // Get all notifications
-router.get("/", protect, getNotifications);
+router.get("/", protect, notificationValidators.list, validate, getNotifications);
 
 // Get unread count
 router.get("/unread/count", protect, getUnreadCount);
@@ -22,9 +24,9 @@ router.get("/unread/count", protect, getUnreadCount);
 router.patch("/read-all", protect, readAllNotifications);
 
 // Mark single as read
-router.patch("/:notificationId/read", protect, readNotification);
+router.patch("/:notificationId/read", protect, notificationValidators.notificationId, validate, readNotification);
 
 // Delete notification
-router.delete("/:notificationId", protect, deleteNotification);
+router.delete("/:notificationId", protect, notificationValidators.notificationId, validate, deleteNotification);
 
 module.exports = router;

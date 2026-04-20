@@ -77,7 +77,7 @@ export default function CreateReelModal({ onClose, onCreated }) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl"
+          className="bg-white dark:bg-ig-dark rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border">
             {step === STEPS.DETAILS ? (
@@ -160,3 +160,6 @@ export default function CreateReelModal({ onClose, onCreated }) {
     </AnimatePresence>
   );
 }
+
+
+

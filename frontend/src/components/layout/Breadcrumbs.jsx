@@ -40,19 +40,19 @@ export default function Breadcrumbs() {
   ];
 
   return (
-    <div className="px-4 py-3 text-sm text-gray-600 border-b border-gray-200">
+    <div className="px-4 py-3 text-sm text-ig-gray border-b border-ig-border bg-white dark:bg-ig-dark">
       <div className="max-w-6xl mx-auto flex items-center gap-2 flex-wrap">
         {breadcrumbs.map((crumb, idx) => (
           <div key={crumb.path} className="flex items-center gap-2">
             {/* Breadcrumb Item */}
             {idx === breadcrumbs.length - 1 ? (
               // Last item: active (bold, not clickable)
-              <span className="font-semibold text-gray-900">{crumb.name}</span>
+              <span className="font-semibold text-ig-dark">{crumb.name}</span>
             ) : (
               // Previous items: clickable links
               <button
                 onClick={() => navigate(crumb.path)}
-                className="text-blue-500 hover:text-blue-700 hover:underline transition-colors font-medium"
+                className="text-ig-blue hover:opacity-80 hover:underline transition-colors font-medium"
               >
                 {crumb.name}
               </button>
@@ -60,7 +60,7 @@ export default function Breadcrumbs() {
 
             {/* Separator (except for last item) */}
             {idx < breadcrumbs.length - 1 && (
-              <ChevronRight size={16} className="text-gray-400" />
+              <ChevronRight size={16} className="text-ig-gray" />
             )}
           </div>
         ))}

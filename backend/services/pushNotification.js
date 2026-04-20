@@ -50,8 +50,8 @@ const initPushNotification = () => {
  */
 const sendPushNotification = async (subscription, payload) => {
   try {
-    if (!webpush) {
-      initPushNotification();
+    if (!webpush && !initPushNotification()) {
+      return { success: false, error: "Push notification service is not configured" };
     }
 
     const notificationPayload = JSON.stringify({
@@ -86,22 +86,38 @@ const sendPushNotification = async (subscription, payload) => {
  */
 const sendBulkPushNotifications = async (subscriptions, payload) => {
   if (!subscriptions || subscriptions.length === 0) {
-    return { success: true, count: 0, failed: [] };
+    return { success: true, count: 0, failed: [], invalid: [] };
   }
 
   const results = {
     success: true,
     count: 0,
     failed: [],
+    invalid: [],
   };
 
-  for (const subscription of subscriptions) {
+  for (const entry of subscriptions) {
     try {
-      await sendPushNotification(subscription, payload);
-      results.count++;
+      const rawToken = entry?.rawToken;
+      const subscription = entry?.subscription || entry;
+      const result = await sendPushNotification(subscription, payload);
+
+      if (result.success) {
+        results.count++;
+        continue;
+      }
+
+      if (result.shouldDelete) {
+        results.invalid.push({ rawToken, subscription });
+      }
+
+      results.failed.push({
+        rawToken,
+        error: result.error || "Failed to send push notification",
+      });
     } catch (err) {
       results.failed.push({
-        subscription,
+        rawToken: entry?.rawToken,
         error: err.message,
       });
     }

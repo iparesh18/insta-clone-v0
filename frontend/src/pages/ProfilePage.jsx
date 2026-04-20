@@ -16,7 +16,7 @@ function UserListModal({ title, users, loading, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-xl overflow-hidden"
+        className="bg-white dark:bg-ig-dark w-full max-w-md rounded-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b border-ig-border flex items-center justify-between">
@@ -86,7 +86,7 @@ function EditProfileModal({ profile, onClose, onUpdated }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <form
-        className="bg-white w-full max-w-md rounded-xl overflow-hidden"
+        className="bg-white dark:bg-ig-dark w-full max-w-md rounded-xl overflow-hidden"
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
       >
@@ -503,8 +503,10 @@ export default function ProfilePage() {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 py-3 border-t-2 text-xs font-semibold tracking-wider -mt-px transition-colors ${
-              tab === id ? "border-ig-dark text-ig-dark" : "border-transparent text-ig-gray hover:text-ig-dark"
+            className={`flex items-center gap-2 py-3 px-2 rounded-md border-t-2 text-xs font-semibold tracking-wider -mt-px transition-colors ${
+              tab === id
+                ? "border-ig-dark text-ig-dark bg-ig-hover"
+                : "border-transparent text-ig-gray hover:text-ig-dark hover:bg-ig-hover"
             }`}
           >
             <Icon size={14} />

@@ -121,7 +121,7 @@ export default function ReelsPage() {
 
         {/* Create Reel Button */}
         <button
-          className="absolute top-5 right-5 z-40 bg-white/90 hover:bg-white text-black text-sm font-semibold px-4 py-2 rounded-full transition-all"
+          className="absolute top-5 right-5 z-40 bg-black/45 hover:bg-black/60 border border-white/30 text-white text-sm font-semibold px-4 py-2 rounded-full transition-all backdrop-blur-sm"
           onClick={() => setShowCreateReel(true)}
         >
           Create Reel

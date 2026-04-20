@@ -105,13 +105,13 @@ export default function SharedFeedPage() {
               ? items.map((post) => (
                   <div key={post._id}>
                     {/* Shared by info */}
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-ig-border text-xs text-ig-gray">
+                    <div className="px-4 py-2 bg-ig-hover border-b border-ig-border text-xs text-ig-gray">
                       Shared by{" "}
-                      <span className="font-semibold text-ig-dark dark:text-white">
+                      <span className="font-semibold text-ig-dark">
                         @{post.sharedBy?.username}
                       </span>
                       {post.shareMessage && (
-                        <div className="mt-1 text-sm italic text-ig-dark dark:text-gray-300">
+                        <div className="mt-1 text-sm italic text-ig-dark">
                           "{post.shareMessage}"
                         </div>
                       )}
@@ -125,13 +125,13 @@ export default function SharedFeedPage() {
               : items.map((reel) => (
                   <div key={reel._id} className="mb-4">
                     {/* Shared by info */}
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-ig-border text-xs text-ig-gray rounded-t-lg">
+                    <div className="px-4 py-2 bg-ig-hover border-b border-ig-border text-xs text-ig-gray rounded-t-lg">
                       Shared by{" "}
-                      <span className="font-semibold text-ig-dark dark:text-white">
+                      <span className="font-semibold text-ig-dark">
                         @{reel.sharedBy?.username}
                       </span>
                       {reel.shareMessage && (
-                        <div className="mt-1 text-sm italic text-ig-dark dark:text-gray-300">
+                        <div className="mt-1 text-sm italic text-ig-dark">
                           "{reel.shareMessage}"
                         </div>
                       )}

@@ -289,17 +289,17 @@ export default function ReelModal({ reel, onClose }) {
               onClick={(e) => e.stopPropagation()}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4"
             >
-              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+              <div className="bg-white dark:bg-ig-dark rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
                 <div className="p-6">
-                  <h3 className="text-lg font-bold mb-2">Delete Reel?</h3>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <h3 className="text-lg font-bold mb-2 text-ig-dark">Delete Reel?</h3>
+                  <p className="text-sm text-ig-gray mb-6">
                     Are you sure you want to delete this reel? This action cannot be undone.
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       disabled={deleting}
-                      className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900
+                      className="flex-1 px-4 py-2 bg-ig-hover hover:bg-ig-border text-ig-dark
                                  font-semibold rounded-lg transition-colors disabled:opacity-50"
                     >
                       Cancel

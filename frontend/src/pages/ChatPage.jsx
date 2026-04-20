@@ -369,7 +369,7 @@ export default function ChatPage() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-ig-border z-50"
+                className="absolute right-0 mt-2 w-48 bg-white dark:bg-ig-dark rounded-lg shadow-lg border border-ig-border z-50"
               >
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
@@ -426,10 +426,10 @@ export default function ChatPage() {
                             setShowReelModal(true);
                           }
                         }}
-                        className={`rounded-2xl overflow-hidden max-w-xs ${isMine ? "rounded-br-none" : "rounded-bl-none"} bg-gray-100 cursor-pointer hover:opacity-80 transition`}
+                        className={`rounded-2xl overflow-hidden max-w-xs ${isMine ? "rounded-br-none" : "rounded-bl-none"} bg-ig-hover cursor-pointer hover:opacity-80 transition`}
                       >
                         {msg.sharedContent.content ? (
-                          <div className="bg-white p-3">
+                          <div className="bg-white dark:bg-ig-dark p-3">
                             <div className="flex items-center gap-2 mb-2">
                               <img
                                 src={msg.sharedContent.content.author?.profilePicture?.url || "/default-avatar.png"}
@@ -438,8 +438,8 @@ export default function ChatPage() {
                                 onError={(e) => e.target.src = "/default-avatar.png"}
                               />
                               <div>
-                                <p className="text-xs font-semibold">{msg.sharedContent.content.author?.username || "Unknown"}</p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs font-semibold text-ig-dark">{msg.sharedContent.content.author?.username || "Unknown"}</p>
+                                <p className="text-xs text-ig-gray">
                                   {msg.sharedContent.type === "post" ? "post" : "reel"}
                                 </p>
                               </div>
@@ -468,13 +468,13 @@ export default function ChatPage() {
                             
                             {/* Caption/Description */}
                             {(msg.sharedContent.message || msg.sharedContent.content.caption) && (
-                              <p className="text-xs text-gray-700 truncate">
+                              <p className="text-xs text-ig-dark truncate">
                                 {msg.sharedContent.message || msg.sharedContent.content.caption}
                               </p>
                             )}
                           </div>
                         ) : (
-                          <div className="bg-white p-3 text-xs text-gray-500">
+                          <div className="bg-white dark:bg-ig-dark p-3 text-xs text-ig-gray">
                             Loading {msg.sharedContent.type}...
                           </div>
                         )}
@@ -504,7 +504,7 @@ export default function ChatPage() {
                     {isMine && (
                       <button
                         onClick={() => handleDeleteMessage(msg._id)}
-                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded text-red-500 transition"
+                        className="p-1 hover:bg-red-100 rounded text-red-500 transition"
                         title="Delete message"
                       >
                         <Trash2 size={14} />
@@ -538,7 +538,7 @@ export default function ChatPage() {
         <Avatar src={me?.profilePicture?.url} alt={me?.username} size="sm" />
         <input
           type="text"
-          className="flex-1 border border-ig-border rounded-full px-4 py-2 text-sm
+          className="flex-1 border border-ig-border rounded-full px-4 py-2 text-sm bg-transparent text-ig-dark placeholder-ig-gray
                      focus:outline-none focus:border-ig-gray"
           placeholder="Message…"
           value={text}
@@ -579,7 +579,7 @@ export default function ChatPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-lg shadow-xl max-w-sm mx-4 overflow-hidden"
+              className="bg-white dark:bg-ig-dark rounded-lg shadow-xl max-w-sm mx-4 overflow-hidden"
             >
               <div className="p-6 border-b border-ig-border">
                 <h3 className="text-lg font-bold text-ig-dark">Delete conversation?</h3>

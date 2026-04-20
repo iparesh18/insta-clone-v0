@@ -17,6 +17,7 @@ export default function CreatePostModal({ onClose }) {
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const fileRef = useRef();
 
   const handleFiles = (selected) => {
@@ -44,6 +45,48 @@ export default function CreatePostModal({ onClose }) {
     }
   };
 
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleGenerateCaption = async () => {
+    if (!files.length) return;
+
+    setGenerating(true);
+    try {
+      const mediaType = files.length > 1 ? "carousel" : files[0]?.type?.startsWith("video") ? "video" : "image";
+      let base64ImageFile = "";
+      let mimeType = "image/jpeg";
+
+      const firstFile = files[0];
+      if (firstFile && firstFile.type?.startsWith("image/")) {
+        base64ImageFile = await fileToBase64(firstFile);
+        mimeType = firstFile.type;
+      }
+
+      const response = await postAPI.generateCaption({
+        prompt: caption,
+        location,
+        mediaType,
+        base64ImageFile,
+        mimeType,
+      });
+
+      const fullCaption = response?.data?.data?.fullCaption || "";
+      setCaption(fullCaption);
+      toast.success("Caption generated");
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to generate caption";
+      toast.error(message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -57,7 +100,7 @@ export default function CreatePostModal({ onClose }) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+          className="bg-white dark:bg-ig-dark rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border">
@@ -133,6 +176,14 @@ export default function CreatePostModal({ onClose }) {
               </div>
               {/* Caption form */}
               <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={handleGenerateCaption}
+                  disabled={generating || loading}
+                  className="self-start px-3 py-1.5 rounded-lg text-sm font-medium border border-ig-border hover:bg-ig-bg transition-colors disabled:opacity-50"
+                >
+                  {generating ? "Generating..." : "AI Generate caption + hashtags"}
+                </button>
                 <textarea
                   placeholder="Write a caption…"
                   value={caption}
@@ -166,3 +217,6 @@ export default function CreatePostModal({ onClose }) {
     </AnimatePresence>
   );
 }
+
+
+

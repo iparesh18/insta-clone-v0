@@ -126,17 +126,17 @@ const ShareModal = ({ isOpen, contentType, contentId, onClose, onSuccess }) => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-md max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            className="w-full max-w-md max-h-[90vh] bg-white dark:bg-ig-dark rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-800 px-6 py-4">
+            <div className="sticky top-0 bg-white dark:bg-ig-dark border-b border-ig-border px-6 py-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold dark:text-white">
+                <h2 className="text-xl font-bold text-ig-dark">
                   Send {contentType} to
                 </h2>
                 <button
                   onClick={onClose}
-                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none"
+                  className="text-ig-gray hover:text-ig-dark text-2xl leading-none"
                 >
                   ×
                 </button>
@@ -148,7 +148,7 @@ const ShareModal = ({ isOpen, contentType, contentId, onClose, onSuccess }) => {
                 placeholder="Search or browse conversations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-ig-hover text-ig-dark rounded-lg placeholder-ig-gray focus:outline-none focus:ring-2 focus:ring-ig-blue"
               />
             </div>
 
@@ -157,7 +157,7 @@ const ShareModal = ({ isOpen, contentType, contentId, onClose, onSuccess }) => {
               {/* Users List */}
               <div className="px-4 py-2">
                 {filteredUsers.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+                  <div className="py-8 text-center text-ig-gray">
                     {users.length === 0 && !fetching
                       ? "No conversations or users found"
                       : "No users match your search"}
@@ -169,8 +169,8 @@ const ShareModal = ({ isOpen, contentType, contentId, onClose, onSuccess }) => {
                       onClick={() => setSelectedUserId(user._id)}
                       className={`flex items-center gap-3 py-3 px-2 rounded-lg cursor-pointer transition ${
                         selectedUserId === user._id
-                          ? "bg-blue-50 dark:bg-blue-900/30"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                          ? "bg-ig-hover border border-ig-blue"
+                          : "hover:bg-ig-hover"
                       }`}
                     >
                       {/* Radio Button */}

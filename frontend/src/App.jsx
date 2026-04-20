@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 
 import useAuthStore from "@/store/authStore";
 import useSocketStore from "@/store/socketStore";
+import useThemeStore from "@/store/themeStore";
 
 import MainLayout from "@/components/layout/MainLayout";
 import AuthLayout from "@/components/layout/AuthLayout";
@@ -23,6 +24,7 @@ import ReelsPage from "@/pages/ReelsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import ChatPage from "@/pages/ChatPage";
 import NotificationPage from "@/pages/NotificationPage";
+import AnalyticsDashboardPage from "@/pages/AnalyticsDashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const Spinner = () => (
@@ -46,12 +48,17 @@ const PublicRoute = ({ children }) => {
 export default function App() {
   const { fetchMe, isAuthenticated } = useAuthStore();
   const { connect, disconnect } = useSocketStore();
+  const initializeTheme = useThemeStore((s) => s.initializeTheme);
 
   // On mount: verify session cookie with server
   // Empty dependency array ensures this runs ONCE on mount only
   useEffect(() => {
     fetchMe();
   }, []);
+
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
 
   // Connect/disconnect socket based on auth state
   // Socket auth uses the httpOnly cookie automatically via withCredentials
@@ -88,6 +95,7 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:userId" element={<ChatPage />} />
           <Route path="/notifications" element={<NotificationPage />} />
+          <Route path="/dashboard" element={<AnalyticsDashboardPage />} />
           <Route path="/:username" element={<ProfilePage />} />
         </Route>
 

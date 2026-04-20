@@ -113,7 +113,7 @@ export default function NotificationPage() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+      <div className="flex items-center justify-between p-4 border-b border-ig-border sticky top-0 bg-white dark:bg-ig-dark z-10 text-ig-dark">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="lg:hidden">
             <ArrowLeft size={24} />
@@ -133,10 +133,10 @@ export default function NotificationPage() {
       {/* Notifications List */}
       {notificationsLoading && !appNotifications.length ? (
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-ig-border border-t-ig-blue" />
         </div>
       ) : appNotifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 text-ig-gray">
           <Heart size={48} className="mb-4 opacity-30" />
           <p className="text-lg">No notifications yet</p>
           <p className="text-sm">When someone likes or comments on your posts, you'll see it here</p>
@@ -150,7 +150,7 @@ export default function NotificationPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               className={`p-4 cursor-pointer transition-colors ${
-                !notification.isRead ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-gray-50"
+                !notification.isRead ? "bg-blue-50 hover:bg-blue-100" : "hover:bg-ig-hover"
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -165,14 +165,14 @@ export default function NotificationPage() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-ig-dark">
                     <span className="font-semibold">
                       {notification.actor?.username}
                     </span>
                     {" "}
                     {getNotificationMessage(notification)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ig-gray mt-1">
                     {new Date(notification.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -193,7 +193,7 @@ export default function NotificationPage() {
                       e.stopPropagation();
                       deleteAppNotification(notification._id);
                     }}
-                    className="text-gray-400 hover:text-gray-600 text-xl"
+                    className="text-ig-gray hover:text-ig-dark text-xl"
                   >
                     ×
                   </button>
@@ -213,7 +213,7 @@ export default function NotificationPage() {
                 setPagination(pag)
               )
             }
-            className="px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg
+            className="px-6 py-2 bg-ig-hover hover:bg-ig-border rounded-lg text-ig-dark
                        font-semibold transition-colors"
           >
             Load more
@@ -239,3 +239,6 @@ export default function NotificationPage() {
     </div>
   );
 }
+
+
+

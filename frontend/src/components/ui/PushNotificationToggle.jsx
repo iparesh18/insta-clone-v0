@@ -21,10 +21,10 @@ export default function PushNotificationToggle() {
 
   if (!isSupported) {
     return (
-      <div className="flex items-center justify-between p-4 bg-gray-100 rounded-lg">
+      <div className="flex items-center justify-between p-4 bg-ig-hover border border-ig-border rounded-lg text-ig-dark">
         <div>
           <h3 className="font-semibold">Push Notifications</h3>
-          <p className="text-sm text-gray-600">Not supported in your browser</p>
+          <p className="text-sm text-ig-gray">Not supported in your browser</p>
         </div>
       </div>
     );
@@ -66,10 +66,10 @@ export default function PushNotificationToggle() {
   };
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-ig-dark border border-ig-border rounded-lg hover:bg-ig-hover transition text-ig-dark">
       <div className="flex-1">
-        <h3 className="font-semibold text-gray-900">Push Notifications</h3>
-        <p className="text-sm text-gray-600 mt-1">
+        <h3 className="font-semibold text-ig-dark">Push Notifications</h3>
+        <p className="text-sm text-ig-gray mt-1">
           {isSubscribed
             ? "✓ You'll receive notifications even when app is closed"
             : "Get notified about likes, comments, and mentions"}
@@ -82,7 +82,7 @@ export default function PushNotificationToggle() {
         className={`ml-4 px-4 py-2 rounded-full font-semibold transition whitespace-nowrap
           ${
             isSubscribed
-              ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
+              ? "bg-ig-hover text-ig-dark hover:bg-ig-border"
               : "bg-ig-blue text-white hover:bg-ig-blue-dark"
           }
           ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}

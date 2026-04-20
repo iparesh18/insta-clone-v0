@@ -12,7 +12,8 @@ const useThemeStore = create((set) => ({
   // Initialize theme from localStorage on app load
   initializeTheme: () => {
     const saved = localStorage.getItem("theme");
-    const isDark = saved ? saved === "dark" : false;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = saved ? saved === "dark" : prefersDark;
     
     set({ isDarkMode: isDark });
     applyTheme(isDark);

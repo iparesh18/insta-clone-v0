@@ -27,6 +27,7 @@ const shareRoutes = require("./routes/share.routes");
 const searchRoutes = require("./routes/search.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const verificationRoutes = require("./routes/verification.routes");
+const analyticsRoutes = require("./routes/analytics.routes");
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/share", shareRoutes);
 app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/analytics", analyticsRoutes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {

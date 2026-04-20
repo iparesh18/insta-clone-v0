@@ -13,21 +13,23 @@ const {
   markShareAsRead,
 } = require("../controllers/share.controller");
 const { protect } = require("../middlewares/auth");
+const { validate } = require("../middlewares/validate");
+const { shareValidators } = require("../validations/routeValidators");
 
 const router = express.Router();
 
 // ─── Get followers for share modal ────────────────────────────────────────────
-router.get("/followers", protect, getShareableFollowers);
+router.get("/followers", protect, shareValidators.followers, validate, getShareableFollowers);
 
 // ─── Share posts and reels ────────────────────────────────────────────────────
-router.post("/posts/:postId", protect, sharePost);
-router.post("/reels/:reelId", protect, shareReel);
+router.post("/posts/:postId", protect, shareValidators.sharePost, validate, sharePost);
+router.post("/reels/:reelId", protect, shareValidators.shareReel, validate, shareReel);
 
 // ─── Get shared content ───────────────────────────────────────────────────────
-router.get("/posts", protect, getSharedPosts);
-router.get("/reels", protect, getSharedReels);
+router.get("/posts", protect, shareValidators.sharedList, validate, getSharedPosts);
+router.get("/reels", protect, shareValidators.sharedList, validate, getSharedReels);
 
 // ─── Mark share as read ───────────────────────────────────────────────────────
-router.patch("/:shareId/read", protect, markShareAsRead);
+router.patch("/:shareId/read", protect, shareValidators.shareId, validate, markShareAsRead);
 
 module.exports = router;

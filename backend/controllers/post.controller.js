@@ -20,10 +20,70 @@ const { uploadToImageKit, deleteFromImageKit } = require("../utils/uploadToImage
 const { getCachedFeed, cacheFeed } = require("../redis/redisHelpers");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
 const { createNotification } = require("./notification.controller");
+const { generateCaptionAndHashtags, buildLocalFallback } = require("../services/geminiCaptionService");
 
 // Extract hashtags from caption
 const extractTags = (caption = "") =>
   (caption.match(/#\w+/g) || []).map((t) => t.slice(1).toLowerCase());
+
+const generatePostCaption = async (req, res, next) => {
+  try {
+    const {
+      prompt = "",
+      location = "",
+      mediaType = "image",
+      base64ImageFile = "",
+      mimeType = "image/jpeg",
+    } = req.body;
+
+    const generated = await generateCaptionAndHashtags({
+      prompt,
+      location,
+      mediaType,
+      base64ImageFile,
+      mimeType,
+    });
+
+    const hashtagsText = generated.hashtags.length
+      ? generated.hashtags.map((tag) => `#${tag}`).join(" ")
+      : "";
+
+    const fullCaption = [generated.caption, hashtagsText].filter(Boolean).join("\n\n");
+
+    return sendSuccess(
+      res,
+      {
+        caption: generated.caption,
+        hashtags: generated.hashtags,
+        fullCaption,
+        fallback: false,
+      },
+      "Caption generated"
+    );
+  } catch (err) {
+    if (err?.isQuotaExceeded || err?.statusCode === 429) {
+      const fallback = buildLocalFallback(req.body || {});
+      const hashtagsText = fallback.hashtags.length
+        ? fallback.hashtags.map((tag) => `#${tag}`).join(" ")
+        : "";
+      const fullCaption = [fallback.caption, hashtagsText].filter(Boolean).join("\n\n");
+
+      return sendSuccess(
+        res,
+        {
+          caption: fallback.caption,
+          hashtags: fallback.hashtags,
+          fullCaption,
+          fallback: true,
+          retryAfterSeconds: err?.retryAfterSeconds || null,
+        },
+        "AI quota reached. Generated a local fallback caption."
+      );
+    }
+
+    next(err);
+  }
+};
 
 // ─── Create Post ─────────────────────────────────────────────────────────────
 /**
@@ -534,6 +594,7 @@ const getUserPosts = async (req, res, next) => {
 };
 
 module.exports = {
+  generatePostCaption,
   createPost,
   getFeed,
   getPost,

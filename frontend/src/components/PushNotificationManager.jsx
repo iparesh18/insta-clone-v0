@@ -27,7 +27,7 @@ export default function PushNotificationManager() {
     const attemptSubscribe = async () => {
       try {
         // Check if VAPID key is configured
-        if (!process.env.VITE_VAPID_PUBLIC_KEY) {
+        if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
           console.warn("⚠️  VITE_VAPID_PUBLIC_KEY not configured - push notifications disabled");
           return;
         }

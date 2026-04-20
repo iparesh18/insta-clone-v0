@@ -3,6 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --ig-blue: 0 149 246;
+    --ig-red: 237 73 86;
+    --ig-dark: 38 38 38;
+    --ig-gray: 142 142 142;
+    --ig-border: 219 219 219;
+    --ig-bg: 250 250 250;
+    --ig-hover: 239 239 239;
+  }
+
+  .dark {
+    --ig-dark: 245 245 245;
+    --ig-gray: 168 168 168;
+    --ig-border: 54 54 54;
+    --ig-bg: 0 0 0;
+    --ig-hover: 18 18 18;
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;
@@ -12,9 +30,97 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
       Arial, sans-serif;
-    background-color: #fafafa;
-    color: #262626;
+    background-color: rgb(var(--ig-bg));
+    color: rgb(var(--ig-dark));
     -webkit-font-smoothing: antialiased;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  .dark body {
+    background-color: #000;
+    color: #f5f5f5;
+  }
+
+  .dark .bg-white {
+    background-color: #000 !important;
+  }
+
+  .dark .bg-black\/50 {
+    background-color: rgb(0 0 0 / 0.72) !important;
+  }
+
+  .dark .text-ig-dark {
+    color: #f5f5f5 !important;
+  }
+
+  .dark .bg-ig-dark {
+    background-color: #262626 !important;
+  }
+
+  .dark .hover\:bg-ig-hover:hover {
+    background-color: #121212 !important;
+  }
+
+  .dark .text-gray-900 {
+    color: #f5f5f5 !important;
+  }
+
+  .dark .text-gray-800 {
+    color: #e5e5e5 !important;
+  }
+
+  .dark .text-gray-700,
+  .dark .text-gray-600 {
+    color: #d4d4d4 !important;
+  }
+
+  .dark .text-gray-500,
+  .dark .text-gray-400 {
+    color: #a3a3a3 !important;
+  }
+
+  .dark .text-gray-300 {
+    color: #d4d4d4 !important;
+  }
+
+  .dark .bg-gray-100,
+  .dark .bg-gray-50 {
+    background-color: #111111 !important;
+  }
+
+  .dark .bg-gray-200 {
+    background-color: #1a1a1a !important;
+  }
+
+  .dark .bg-blue-50,
+  .dark .bg-blue-100 {
+    background-color: #0f172a !important;
+  }
+
+  .dark .hover\:bg-gray-50:hover,
+  .dark .hover\:bg-white:hover,
+  .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-blue-100:hover {
+    background-color: #171717 !important;
+  }
+
+  .dark .border,
+  .dark .border-ig-border,
+  .dark .border-gray-200,
+  .dark .border-slate-200,
+  .dark .border-gray-100 {
+    border-color: #363636 !important;
+  }
+
+  .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #222 !important;
+  }
+
+  .dark .shadow-sm,
+  .dark .shadow-md,
+  .dark .shadow-xl,
+  .dark .shadow-2xl {
+    box-shadow: none !important;
   }
 
   /* Instagram-style scrollbar */

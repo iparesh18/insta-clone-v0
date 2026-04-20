@@ -98,20 +98,20 @@ export default function SearchBar() {
   return (
     <div className="relative w-full max-w-md">
       {/* Search Input */}
-      <div className="relative bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2 flex items-center gap-2">
-        <Search size={18} className="text-gray-500" />
+      <div className="relative bg-ig-hover rounded-full px-4 py-2 flex items-center gap-2">
+        <Search size={18} className="text-ig-gray" />
         <input
           type="text"
           placeholder="Search Instagram..."
           value={query}
           onChange={handleSearch}
           onFocus={() => setIsOpen(true)}
-          className="bg-transparent outline-none flex-1 text-sm placeholder-gray-500 dark:text-white"
+          className="bg-transparent outline-none flex-1 text-sm placeholder-ig-gray text-ig-dark"
         />
         {query && (
           <button
             onClick={handleClear}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+            className="p-1 hover:bg-ig-border rounded-full"
           >
             <X size={16} />
           </button>
@@ -120,24 +120,24 @@ export default function SearchBar() {
 
       {/* Results Dropdown */}
       {isOpen && (
-        <div className="absolute top-full mt-2 w-full bg-white dark:bg-gray-900 rounded-lg shadow-lg border dark:border-gray-700 max-h-96 overflow-y-auto z-50">
+        <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-ig-border max-h-96 overflow-y-auto z-50 text-ig-dark">
           {loading && (
-            <div className="p-4 text-center text-gray-500">Searching...</div>
+            <div className="p-4 text-center text-ig-gray">Searching...</div>
           )}
 
           {!loading && results && (
             <>
               {/* Users Section */}
               {results.users?.length > 0 && (
-                <div className="border-b dark:border-gray-700">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                <div className="border-b border-ig-border">
+                  <div className="px-4 py-2 text-xs font-semibold text-ig-gray uppercase">
                     Users
                   </div>
                   {results.users.map((user) => (
                     <button
                       key={user._id}
                       onClick={() => handleClickUser(user.username)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 hover:bg-ig-hover flex items-center gap-2"
                     >
                       <img
                         src={user.profilePicture}
@@ -146,7 +146,7 @@ export default function SearchBar() {
                       />
                       <div>
                         <p className="text-sm font-semibold">{user.username}</p>
-                        <p className="text-xs text-gray-500">{user.name}</p>
+                        <p className="text-xs text-ig-gray">{user.name}</p>
                       </div>
                     </button>
                   ))}
@@ -155,15 +155,15 @@ export default function SearchBar() {
 
               {/* Posts Section */}
               {results.posts?.length > 0 && (
-                <div className="border-b dark:border-gray-700">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                <div className="border-b border-ig-border">
+                  <div className="px-4 py-2 text-xs font-semibold text-ig-gray uppercase">
                     Posts
                   </div>
                   {results.posts.map((post) => (
                     <button
                       key={post._id}
                       onClick={() => handleClickPost(post._id)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 hover:bg-ig-hover flex items-center gap-2"
                     >
                       <img
                         src={post.media?.[0]?.url}
@@ -172,7 +172,7 @@ export default function SearchBar() {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate">{post.caption}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ig-gray">
                           @{post.author?.username}
                         </p>
                       </div>
@@ -183,15 +183,15 @@ export default function SearchBar() {
 
               {/* Reels Section */}
               {results.reels?.length > 0 && (
-                <div className="border-b dark:border-gray-700">
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                <div className="border-b border-ig-border">
+                  <div className="px-4 py-2 text-xs font-semibold text-ig-gray uppercase">
                     Reels
                   </div>
                   {results.reels.map((reel) => (
                     <button
                       key={reel._id}
                       onClick={() => handleClickReel(reel)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 hover:bg-ig-hover flex items-center gap-2"
                     >
                       <img
                         src={reel.video?.thumbnailUrl}
@@ -200,7 +200,7 @@ export default function SearchBar() {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm truncate">{reel.caption}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ig-gray">
                           @{reel.author?.username}
                         </p>
                       </div>
@@ -212,14 +212,14 @@ export default function SearchBar() {
               {/* Hashtags Section */}
               {results.hashtags?.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                  <div className="px-4 py-2 text-xs font-semibold text-ig-gray uppercase">
                     Hashtags
                   </div>
                   {results.hashtags.map((tag) => (
                     <button
                       key={tag}
                       onClick={() => handleSaveSearch(tag)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      className="w-full text-left px-4 py-2 hover:bg-ig-hover"
                     >
                       <p className="text-sm font-semibold">#{tag}</p>
                     </button>
@@ -232,7 +232,7 @@ export default function SearchBar() {
                 !results.posts?.length &&
                 !results.reels?.length &&
                 !results.hashtags?.length && (
-                  <div className="p-4 text-center text-gray-500">
+                  <div className="p-4 text-center text-ig-gray">
                     No results found
                   </div>
                 )}
@@ -242,17 +242,17 @@ export default function SearchBar() {
           {/* Recent Searches */}
           {!query && recentSearches.length > 0 && (
             <div>
-              <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+              <div className="px-4 py-2 text-xs font-semibold text-ig-gray uppercase">
                 Recent
               </div>
               {recentSearches.map((search) => (
                 <button
                   key={search}
                   onClick={() => handleSaveSearch(search)}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-between"
+                  className="w-full text-left px-4 py-2 hover:bg-ig-hover flex items-center justify-between"
                 >
                   <span className="text-sm">{search}</span>
-                  <X size={14} className="text-gray-400" />
+                  <X size={14} className="text-ig-gray" />
                 </button>
               ))}
             </div>
@@ -263,7 +263,7 @@ export default function SearchBar() {
             recentSearches.length === 0 &&
             !loading &&
             !results && (
-              <div className="p-4 text-center text-gray-500 text-sm">
+              <div className="p-4 text-center text-ig-gray text-sm">
                 Type to search users, posts, or tags
               </div>
             )}

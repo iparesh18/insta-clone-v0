@@ -4,8 +4,21 @@
  */
 
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 const { sendSuccess, sendError } = require("../utils/apiResponse");
 const { getIO } = require("../socket/socketManager");
+const {
+  sendBulkPushNotifications,
+  notificationTemplates,
+} = require("../services/pushNotification");
+
+const safeParseSubscription = (token) => {
+  try {
+    return JSON.parse(token);
+  } catch {
+    return null;
+  }
+};
 
 // ─── Get Notifications ────────────────────────────────────────────────────────
 const getNotifications = async (req, res, next) => {
@@ -111,7 +124,7 @@ const createNotification = async (
       type,
       referenceId,
       referenceType,
-      message: message || `${type}d your ${referenceType.toLowerCase()}`,
+      message: message || `${type}d your ${String(referenceType || "content").toLowerCase()}`,
       isRead: false,
     });
 
@@ -143,6 +156,45 @@ const createNotification = async (
       }
     } catch (socketErr) {
       console.warn(`⚠️  [SOCKET] Failed to emit notification:`, socketErr.message);
+    }
+
+    // Send web push notifications for users who subscribed on this device/browser
+    try {
+      const targetUser = await User.findById(userId).select("pushTokens");
+      const storedTokens = targetUser?.pushTokens || [];
+
+      if (storedTokens.length > 0) {
+        const subscriptions = storedTokens
+          .map((rawToken) => ({ rawToken, subscription: safeParseSubscription(rawToken) }))
+          .filter((entry) => !!entry.subscription);
+
+        const templateFactory = notificationTemplates[type];
+        const payload = typeof templateFactory === "function"
+          ? templateFactory(populated.actor, String(referenceType || "post").toLowerCase())
+          : {
+              title: "Instagram Clone",
+              body: populated.message,
+              tag: `${type}-${populated._id}`,
+              data: { actionUrl: "/notifications" },
+            };
+
+        const pushResult = await sendBulkPushNotifications(subscriptions, payload);
+
+        // Remove stale/expired subscriptions (410/404) from user document
+        if (pushResult.invalid?.length) {
+          const invalidRawTokens = pushResult.invalid
+            .map((item) => item.rawToken)
+            .filter(Boolean);
+
+          if (invalidRawTokens.length > 0) {
+            await User.findByIdAndUpdate(userId, {
+              $pull: { pushTokens: { $in: invalidRawTokens } },
+            });
+          }
+        }
+      }
+    } catch (pushErr) {
+      console.warn("⚠️  [PUSH] Failed to send push notification:", pushErr.message);
     }
 
     return populated;

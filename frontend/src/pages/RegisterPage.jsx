@@ -60,7 +60,7 @@ export default function RegisterPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-4 max-w-sm mx-auto"
       >
-        <div className="bg-white border border-ig-border rounded p-10 space-y-6 text-center">
+        <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-10 space-y-6 text-center">
           <div className="text-5xl">📧</div>
 
           <h2 className="text-2xl font-bold text-ig-dark">
@@ -115,7 +115,7 @@ export default function RegisterPage() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      <div className="bg-white border border-ig-border rounded p-10 space-y-4">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-10 space-y-4">
         <h1 className="text-4xl font-bold text-center tracking-tighter"
             style={{ fontFamily: "Billabong, cursive" }}>
           Instagram
@@ -150,7 +150,7 @@ export default function RegisterPage() {
         </form>
       </div>
 
-      <div className="bg-white border border-ig-border rounded p-5 text-center text-sm">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-5 text-center text-sm">
         Have an account?{" "}
         <Link to="/login" className="text-ig-blue font-semibold hover:underline">
           Log in
@@ -159,3 +159,4 @@ export default function RegisterPage() {
     </motion.div>
   );
 }
+

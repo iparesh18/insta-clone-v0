@@ -8,13 +8,15 @@
 
 const express = require("express");
 const { verifyEmail, resendVerificationEmail } = require("../controllers/verification.controller");
+const { validate } = require("../middlewares/validate");
+const { verificationValidators } = require("../validations/routeValidators");
 
 const router = express.Router();
 
 // Verify email with token
-router.post("/verify-email/:token", verifyEmail);
+router.post("/verify-email/:token", verificationValidators.verifyEmail, validate, verifyEmail);
 
 // Resend verification email
-router.post("/resend-verification", resendVerificationEmail);
+router.post("/resend-verification", verificationValidators.resendVerification, validate, resendVerificationEmail);
 
 module.exports = router;

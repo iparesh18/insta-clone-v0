@@ -7,6 +7,7 @@ const getRedisClient = require("./redisClient");
 
 const FEED_PREFIX = "feed:";
 const ONLINE_PREFIX = "online:";
+const ANALYTICS_PREFIX = "analytics:";
 
 // ─── Feed Cache ──────────────────────────────────────────────────────────────
 
@@ -28,6 +29,25 @@ const getCachedFeed = async (userId, page) => {
 const invalidateFeedCache = async (userId) => {
   const client = getRedisClient();
   const keys = await client.keys(`${FEED_PREFIX}${userId}:*`);
+  if (keys.length) await client.del(...keys);
+};
+
+// ─── Analytics Cache ─────────────────────────────────────────────────────────
+
+const cacheAnalytics = async (userId, key, data, ttl = 300) => {
+  const client = getRedisClient();
+  await client.setex(`${ANALYTICS_PREFIX}${userId}:${key}`, ttl, JSON.stringify(data));
+};
+
+const getCachedAnalytics = async (userId, key) => {
+  const client = getRedisClient();
+  const raw = await client.get(`${ANALYTICS_PREFIX}${userId}:${key}`);
+  return raw ? JSON.parse(raw) : null;
+};
+
+const invalidateAnalyticsCache = async (userId) => {
+  const client = getRedisClient();
+  const keys = await client.keys(`${ANALYTICS_PREFIX}${userId}:*`);
   if (keys.length) await client.del(...keys);
 };
 
@@ -104,6 +124,9 @@ module.exports = {
   cacheFeed,
   getCachedFeed,
   invalidateFeedCache,
+  cacheAnalytics,
+  getCachedAnalytics,
+  invalidateAnalyticsCache,
   setUserOnline,
   refreshUserActivity,
   isUserOnline,

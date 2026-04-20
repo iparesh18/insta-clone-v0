@@ -138,8 +138,8 @@ export default function PostDetailModal({ postId, onClose }) {
 
               {/* Caption Section */}
               {post.caption && (
-                <div className="p-4 border-b border-ig-border bg-gray-50 dark:bg-gray-900">
-                  <p className="text-sm text-ig-dark dark:text-white">{post.caption}</p>
+                <div className="p-4 border-b border-ig-border bg-ig-hover">
+                  <p className="text-sm text-ig-dark">{post.caption}</p>
                 </div>
               )}
 

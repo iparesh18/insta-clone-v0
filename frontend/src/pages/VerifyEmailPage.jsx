@@ -65,7 +65,7 @@ export default function VerifyEmailPage() {
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-sm mx-auto"
       >
-        <div className="bg-white border border-ig-border rounded p-10 space-y-6 text-center">
+        <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-10 space-y-6 text-center">
           <div className="text-6xl animate-bounce">✅</div>
 
           <div>
@@ -95,7 +95,7 @@ export default function VerifyEmailPage() {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-sm mx-auto space-y-4"
     >
-      <div className="bg-white border border-ig-border rounded p-10 space-y-6">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-10 space-y-6">
         <h1 className="text-2xl font-bold text-center text-ig-dark">
           Verify Your Email
         </h1>
@@ -144,3 +144,4 @@ export default function VerifyEmailPage() {
     </motion.div>
   );
 }
+

@@ -62,7 +62,7 @@ export default function LoginPage() {
       className="space-y-4"
     >
       {/* Card */}
-      <div className="bg-white border border-ig-border rounded p-10 space-y-4">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-10 space-y-4">
         <h1 className="text-4xl font-bold text-center tracking-tighter mb-6"
             style={{ fontFamily: "Billabong, cursive" }}>
           Instagram
@@ -112,7 +112,7 @@ export default function LoginPage() {
 
       </div>
 
-      <div className="bg-white border border-ig-border rounded p-5 text-center text-sm">
+      <div className="bg-white dark:bg-ig-dark border border-ig-border rounded p-5 text-center text-sm">
         Don't have an account?{" "}
         <Link to="/register" className="text-ig-blue font-semibold hover:underline">
           Sign up
@@ -121,3 +121,4 @@ export default function LoginPage() {
     </motion.div>
   );
 }
+

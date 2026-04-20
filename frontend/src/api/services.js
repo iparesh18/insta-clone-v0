@@ -40,6 +40,7 @@ export const userAPI = {
 export const postAPI = {
   create: (formData) =>
     api.post("/posts", formData),
+  generateCaption: (data) => api.post("/posts/generate-caption", data),
   getFeed: (cursor) =>
     api.get(`/posts/feed${cursor ? `?cursor=${cursor}` : ""}`),
   getPost: (id) => api.get(`/posts/${id}`),
@@ -116,4 +117,9 @@ export const shareAPI = {
 
 export const searchAPI = {
   global: (q) => api.get(`/search?q=${encodeURIComponent(q)}`),
+};
+
+export const analyticsAPI = {
+  getDashboard: (days = 30) =>
+    api.get(`/analytics/dashboard?days=${days}`),
 };
