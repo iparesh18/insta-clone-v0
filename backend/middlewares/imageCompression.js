@@ -13,9 +13,18 @@ const logger = require("../utils/logger");
  * Compress image files in a multer request
  * Reduces file size by up to 70% while maintaining quality
  * Supports: jpg, jpeg, png, webp
+ * Handles both single file (req.file) and multiple files (req.files)
  */
 const compressImages = async (req, res, next) => {
   try {
+    // Handle single file upload (from .single())
+    if (req.file && isImageFile(req.file.mimetype)) {
+      const compressed = await compressImage(req.file);
+      req.file = compressed;
+      return next();
+    }
+
+    // Handle multiple file uploads (from .array())
     if (!req.files || req.files.length === 0) {
       return next();
     }

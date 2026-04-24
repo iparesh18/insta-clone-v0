@@ -20,7 +20,7 @@ const {
   unregisterPushSubscription,
 } = require("../controllers/user.controller");
 const { protect } = require("../middlewares/auth");
-const { uploadSingleWithCompression } = require("../middlewares/upload");
+const { avatarUpload } = require("../middlewares/upload");
 const { validate } = require("../middlewares/validate");
 const { userValidators } = require("../validations/routeValidators");
 
@@ -36,7 +36,7 @@ router.put(
   protect,
   userValidators.updateProfile,
   validate,
-  ...uploadSingleWithCompression(["image/jpeg", "image/png", "image/webp"], 5, "avatar"),
+  avatarUpload.single("avatar"),
   updateProfile
 );
 router.delete("/me", protect, deleteAccount);
