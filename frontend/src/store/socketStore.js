@@ -6,6 +6,23 @@
 import { create } from "zustand";
 import { io } from "socket.io-client";
 
+const resolveSocketUrl = () => {
+  const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
+
+  if (configuredSocketUrl && /^https?:\/\//i.test(configuredSocketUrl)) {
+    return configuredSocketUrl.replace(/\/+$/, "");
+  }
+
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+  if (configuredApiUrl && /^https?:\/\//i.test(configuredApiUrl)) {
+    return configuredApiUrl
+      .replace(/\/+$/, "")
+      .replace(/\/api\/v1$/i, "");
+  }
+
+  return "http://localhost:5000";
+};
+
 const useSocketStore = create((set, get) => ({
   socket: null,
   onlineUsers: new Set(),
@@ -13,15 +30,12 @@ const useSocketStore = create((set, get) => ({
   connect: () => {
     if (get().socket?.connected) return;
 
-    const socket = io(
-      import.meta.env.VITE_SOCKET_URL || "http://localhost:5000",
-      {
-        withCredentials: true,   // sends httpOnly cookie automatically
-        transports: ["websocket", "polling"],
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      }
-    );
+    const socket = io(resolveSocketUrl(), {
+      withCredentials: true,   // sends httpOnly cookie automatically
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
     socket.on("connect", () => console.log("Socket connected:", socket.id));
     socket.on("connect_error", (err) => console.warn("Socket error:", err.message));
