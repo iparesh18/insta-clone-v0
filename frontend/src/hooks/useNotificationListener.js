@@ -34,8 +34,12 @@ export function useNotificationListener() {
       pollIntervalRef.current = setInterval(async () => {
         try {
           const pagination = await fetchAppNotifications(1, 0);
-          // Polling successful - notifications are being fetched
-          console.log("📡 [POLLING] Notifications synced");
+          if (pagination) {
+            // Polling successful - notifications are being fetched
+            console.log("📡 [POLLING] Notifications synced");
+          } else {
+            console.warn("⚠️ [POLLING] Notifications request returned no data");
+          }
         } catch (err) {
           console.warn("⚠️ [POLLING] Fallback polling failed:", err.message);
         }

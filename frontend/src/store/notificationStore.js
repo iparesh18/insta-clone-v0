@@ -5,6 +5,7 @@
  */
 
 import { create } from "zustand";
+import api from "@/api/axios";
 
 const useNotificationStore = create((set, get) => ({
   // Unread message state
@@ -245,15 +246,9 @@ const useNotificationStore = create((set, get) => ({
   fetchAppNotifications: async (limit = 20, skip = 0) => {
     set({ notificationsLoading: true });
     try {
-      const response = await fetch(`/api/v1/notifications?limit=${limit}&skip=${skip}`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
+      const { data } = await api.get("/notifications", {
+        params: { limit, skip },
       });
-      if (!response.ok) throw new Error("Failed to fetch notifications");
-      
-      const data = await response.json();
       const { notifications, pagination } = data.data;
       
       set({
@@ -285,14 +280,7 @@ const useNotificationStore = create((set, get) => ({
    */
   markNotificationAsRead: async (notificationId) => {
     try {
-      const response = await fetch(`/api/v1/notifications/${notificationId}/read`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to mark notification as read");
+      await api.patch(`/notifications/${notificationId}/read`);
 
       set((state) => ({
         appNotifications: state.appNotifications.map((n) =>
@@ -310,14 +298,7 @@ const useNotificationStore = create((set, get) => ({
    */
   markAllNotificationsAsRead: async () => {
     try {
-      const response = await fetch("/api/v1/notifications/read-all", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to mark all as read");
+      await api.patch("/notifications/read-all");
 
       set((state) => ({
         appNotifications: state.appNotifications.map((n) => ({ ...n, isRead: true })),
@@ -333,14 +314,7 @@ const useNotificationStore = create((set, get) => ({
    */
   deleteAppNotification: async (notificationId) => {
     try {
-      const response = await fetch(`/api/v1/notifications/${notificationId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to delete notification");
+      await api.delete(`/notifications/${notificationId}`);
 
       set((state) => ({
         appNotifications: state.appNotifications.filter((n) => n._id !== notificationId),
