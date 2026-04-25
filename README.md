@@ -1,4 +1,4 @@
-# Instagram Clone v2
+# Instagram Clone
 
 Production-grade Instagram-inspired social platform focused on **real-time systems, async processing, and scalable backend design**.
 
