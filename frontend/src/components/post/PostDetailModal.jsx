@@ -40,6 +40,13 @@ export default function PostDetailModal({ postId, onClose }) {
         setLikeCount(typeof p.likeCount === "number" ? p.likeCount : likeUsers.length);
         setLikes(likeUsers);
         setComments(commentRows);
+      } catch (err) {
+        if (mounted) {
+          setPost(null);
+          setLikes([]);
+          setComments([]);
+        }
+        console.warn("Failed to load post details:", err?.message || err);
       } finally {
         if (mounted) setLoading(false);
       }
