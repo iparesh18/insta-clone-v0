@@ -248,6 +248,7 @@ const useNotificationStore = create((set, get) => ({
     try {
       const { data } = await api.get("/notifications", {
         params: { limit, skip },
+        silent: true,
       });
       const { notifications, pagination } = data.data;
       

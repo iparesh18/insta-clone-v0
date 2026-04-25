@@ -20,44 +20,74 @@ export function useNotificationListener() {
   const showNotificationToast = useNotificationStore((s) => s.showNotificationToast);
   const fetchAppNotifications = useNotificationStore((s) => s.fetchAppNotifications);
   
-  const pollIntervalRef = useRef(null);
+  const pollTimeoutRef = useRef(null);
+  const pollDelayRef = useRef(30000);
+  const failureCountRef = useRef(0);
   const lastNotificationIdRef = useRef(null);
 
-  // ─── Polling Fallback (every 10 seconds) ──────────────────────────────
-  // If Socket.io fails, this ensures notifications still arrive within 10 seconds
+  // ─── Polling Fallback (adaptive) ───────────────────────────────────────
+  // Poll only as fallback and back off on failures to avoid rate-limit pressure.
   useEffect(() => {
     if (!me) return;
 
-    const startPolling = () => {
-      if (pollIntervalRef.current) return;
+    let isCancelled = false;
 
-      pollIntervalRef.current = setInterval(async () => {
-        try {
-          const pagination = await fetchAppNotifications(1, 0);
-          if (pagination) {
-            // Polling successful - notifications are being fetched
-            console.log("📡 [POLLING] Notifications synced");
-          } else {
-            console.warn("⚠️ [POLLING] Notifications request returned no data");
-          }
-        } catch (err) {
-          console.warn("⚠️ [POLLING] Fallback polling failed:", err.message);
-        }
-      }, 10000); // Poll every 10 seconds
-    };
-
-    const stopPolling = () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+    const clearPollTimer = () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
       }
     };
 
-    // Start polling as fallback
-    startPolling();
+    const scheduleNextTick = (delayMs) => {
+      clearPollTimer();
+      pollTimeoutRef.current = setTimeout(runPollingTick, delayMs);
+    };
 
-    return stopPolling;
-  }, [me, fetchAppNotifications]);
+    const runPollingTick = async () => {
+      if (isCancelled) return;
+
+      // Socket is primary transport; polling is fallback.
+      if (socket?.connected) {
+        pollDelayRef.current = 30000;
+        failureCountRef.current = 0;
+        scheduleNextTick(30000);
+        return;
+      }
+
+      const pagination = await fetchAppNotifications(1, 0);
+
+      if (isCancelled) return;
+
+      if (pagination) {
+        failureCountRef.current = 0;
+        pollDelayRef.current = 30000;
+        console.log("📡 [POLLING] Notifications synced");
+      } else {
+        failureCountRef.current += 1;
+        pollDelayRef.current = Math.min(pollDelayRef.current * 2, 300000);
+        console.warn(
+          `⚠️ [POLLING] Notifications request returned no data (retry in ${Math.round(
+            pollDelayRef.current / 1000
+          )}s)`
+        );
+      }
+
+      scheduleNextTick(pollDelayRef.current);
+    };
+
+    const stopPolling = () => {
+      clearPollTimer();
+    };
+
+    // Start polling as fallback
+    runPollingTick();
+
+    return () => {
+      isCancelled = true;
+      stopPolling();
+    };
+  }, [me, socket, fetchAppNotifications]);
 
   useEffect(() => {
     if (!socket || !me) return;

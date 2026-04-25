@@ -57,6 +57,8 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const isSilentRequest = Boolean(error.config?.silent);
+
     if (error.response?.status === 401) {
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
@@ -68,7 +70,7 @@ api.interceptors.response.use(
       error.response?.data?.message || "Something went wrong";
 
     // Don't toast on 401 (handled above) or on canceled requests
-    if (error.response?.status !== 401 && !axios.isCancel(error)) {
+    if (error.response?.status !== 401 && !axios.isCancel(error) && !isSilentRequest) {
       toast.error(message);
     }
 
