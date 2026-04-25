@@ -15,10 +15,13 @@ const { sendSuccess, sendError } = require("../utils/apiResponse");
 const { sendVerificationEmail } = require("../services/emailService");
 
 // ─── Cookie Options ──────────────────────────────────────────────────────────
+const isProduction = process.env.NODE_ENV === "production";
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
+  secure: isProduction,
+  // Cross-site frontend (Vercel) -> backend (Render) needs SameSite=None in production.
+  // Local development keeps a stricter default.
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -101,7 +104,11 @@ const login = async (req, res, next) => {
 // ─── Logout ───────────────────────────────────────────────────────────────────
 const logout = async (req, res, next) => {
   try {
-    res.clearCookie("accessToken");
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: ACCESS_COOKIE_OPTIONS.secure,
+      sameSite: ACCESS_COOKIE_OPTIONS.sameSite,
+    });
 
     return sendSuccess(res, {}, "Logged out");
   } catch (err) {
