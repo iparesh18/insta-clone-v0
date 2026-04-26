@@ -7,6 +7,26 @@
 import axios from "axios";
 import toast from "react-hot-toast";
 
+const AUTH_TOKEN_KEY = "ig-access-token";
+
+const hasWindow = () => typeof window !== "undefined";
+
+export const getAuthToken = () => {
+  if (!hasWindow()) return "";
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+};
+
+export const setAuthToken = (token) => {
+  if (!hasWindow()) return;
+
+  if (token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    return;
+  }
+
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+};
+
 const resolveApiBaseUrl = () => {
   const configured = import.meta.env.VITE_API_URL?.trim();
 
@@ -53,6 +73,18 @@ const api = axios.create({
   timeout: 300000, // 5 minutes for large file uploads
 });
 
+// Request interceptor — attach bearer token fallback for browsers that block third-party cookies.
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 // Response interceptor — handles auth failures by redirecting to login
 api.interceptors.response.use(
   (response) => response,
@@ -60,6 +92,7 @@ api.interceptors.response.use(
     const isSilentRequest = Boolean(error.config?.silent);
 
     if (error.response?.status === 401) {
+      setAuthToken("");
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

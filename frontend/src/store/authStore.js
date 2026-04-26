@@ -7,6 +7,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authAPI } from "@/api/services";
+import { setAuthToken } from "@/api/axios";
 
 let isFetchingMe = false;
 
@@ -54,6 +55,7 @@ const useAuthStore = create(
         } catch {
           // ignore — clear state regardless
         } finally {
+          setAuthToken("");
           set({ 
             user: null, 
             isAuthenticated: false,

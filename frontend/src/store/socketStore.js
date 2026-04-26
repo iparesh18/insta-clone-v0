@@ -5,6 +5,7 @@
 
 import { create } from "zustand";
 import { io } from "socket.io-client";
+import { getAuthToken } from "@/api/axios";
 
 const resolveSocketUrl = () => {
   const configuredSocketUrl = import.meta.env.VITE_SOCKET_URL?.trim();
@@ -30,8 +31,11 @@ const useSocketStore = create((set, get) => ({
   connect: () => {
     if (get().socket?.connected) return;
 
+    const token = getAuthToken();
+
     const socket = io(resolveSocketUrl(), {
       withCredentials: true,   // sends httpOnly cookie automatically
+      auth: token ? { token } : undefined,
       transports: ["websocket", "polling"],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { authAPI, verificationAPI } from "@/api/services";
+import { setAuthToken } from "@/api/axios";
 import useAuthStore from "@/store/authStore";
 
 export default function LoginPage() {
@@ -23,6 +24,7 @@ export default function LoginPage() {
     setEmailNotVerified(false);
     try {
       const { data } = await authAPI.login(form);
+      setAuthToken(data?.data?.accessToken || "");
       setUser(data.data.user);
       toast.success("Welcome back!");
       navigate("/");
