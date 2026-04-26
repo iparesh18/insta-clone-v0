@@ -10,6 +10,16 @@
 
 const rateLimit = require("express-rate-limit");
 
+const getClientIpKey = (req) => {
+  const ip = req.ip || req.connection?.remoteAddress || "unknown";
+
+  if (typeof rateLimit.ipKeyGenerator === "function") {
+    return rateLimit.ipKeyGenerator(ip);
+  }
+
+  return ip;
+};
+
 // Global API limiter (for non-auth routes)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -32,7 +42,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many auth attempts. Try again in 15 minutes." },
-  keyGenerator: (req) => req.ip || req.connection.remoteAddress,
+  keyGenerator: (req) => getClientIpKey(req),
   skip: (req) => false, // Don't skip anything for auth
 });
 
@@ -44,7 +54,7 @@ const protectedLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many requests. Please wait a moment." },
-  keyGenerator: (req) => req.ip || req.connection.remoteAddress,
+  keyGenerator: (req) => getClientIpKey(req),
   skip: (req) => false,
 });
 

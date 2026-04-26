@@ -31,6 +31,10 @@ const analyticsRoutes = require("./routes/analytics.routes");
 
 const app = express();
 
+// Render sits behind a reverse proxy/load balancer.
+// trust proxy allows Express to honor X-Forwarded-For for correct client IP detection.
+app.set("trust proxy", 1);
+
 // ─── Security ───────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(
