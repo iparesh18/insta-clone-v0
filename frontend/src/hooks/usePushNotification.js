@@ -18,14 +18,17 @@ export const usePushNotification = () => {
 
   // Check browser support
   useEffect(() => {
+    const hasWindow = typeof window !== "undefined";
+    const hasNotification = hasWindow && "Notification" in window;
+
     const supported =
-      typeof window !== "undefined" &&
+      hasWindow &&
       "serviceWorker" in navigator &&
       "PushManager" in window &&
-      "Notification" in window;
+      hasNotification;
 
     setIsSupported(supported);
-    setPermission(Notification.permission);
+    setPermission(hasNotification ? Notification.permission : "default");
 
     if (supported) {
       registerServiceWorker();
@@ -69,7 +72,7 @@ export const usePushNotification = () => {
 
   // Request notification permission
   const requestPermission = async () => {
-    if (!isSupported) {
+    if (!isSupported || typeof Notification === "undefined") {
       setError("Push notifications are not supported in this browser");
       return false;
     }
